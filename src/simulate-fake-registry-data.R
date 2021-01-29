@@ -6,6 +6,7 @@
 library(tidyverse)
 library(heaven)
 vignette('user-heaven')
+browseVignettes('heaven')
 
 # population
 heaven::simPop(10)

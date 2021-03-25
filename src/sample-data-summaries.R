@@ -38,6 +38,7 @@ colnames(sglt2) <- c("age","sex","T1","T2","T3","T4","T5","T6","T7","T8","T9","d
 #Dataset size
 ndf <- 10000
 #Sample with replacement with the probability of the observed frequency
+set.seed(12345)
 glp1_sim <- glp1[sample(nrow(glp1), ndf, replace = TRUE, prob = glp1$weight), ]
 sglt2_sim <- sglt2[sample(nrow(sglt2), ndf, replace = TRUE, prob = sglt2$weight), ]
 glp1_sim$A <- "glp1"

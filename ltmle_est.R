@@ -1,8 +1,9 @@
 rm(list=ls())
 library(ltmle)
+library(here)
 library(dplyr)
 # load("./data/clean/finaldata.RData")
-data <- rio::import("./diabetes-dementia-TL-roadmap/simulated data/novo_registry_simulated.RDS")
+data <- readRDS(here("simulated data/novo_registry_simulated.RDS"))
 
 str(data)
 head(data)

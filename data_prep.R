@@ -1,25 +1,27 @@
 # https://github.com/romainkp/LtAtStructuR
+# library(remotes)
+# install_github("romainkp/LtAtStructuR")
 library(LtAtStructuR)
 #runShiny()
 library(data.table)
 library(lubridate)
 library(heaven)
+#library(future) # optional (for parallel processing)
+#plan(multiprocess) # optional (for parallel processing)
 
-library(future) # optional (for parallel processing)
-plan(multiprocess) # optional (for parallel processing)
-
+#Step 1: simulate the raw data formats
 set.seed(05021992)
 N<- 1000
-#(adm_data_raw <- simAdmissionData(N))
-# export(adm_data_raw,"a")
-(cohort_raw <- simPop(N))
-rio::export(cohort_raw, "cohort_data.csv")
+cohort_raw <- simPop(N)
+lmdb=simPrescriptionData(N,packages=packs)
+lpr=simAdmissionData(N)
+rio::export(cohort_raw, "./data_raw/cohort_data.csv")
 
+
+#Step 2: preprocessing of med and admission data
 packs = list("R03AK11"=list(c(750,75),c(500,200),c(400,200)),
              "R03AL03"=list(c(750,75),c(500,200),c(400,200)),
              "C01CA01"=list(c(200,100),c(750,30)))
-lmdb=simPrescriptionData(N,packages=packs)
-lpr=simAdmissionData(N)
 lpr <- getAdmLimits(lpr,collapse=TRUE)
 drug1 = list(atc=c("R03AK11","R03AL03","R03AC02","R03AC04","R03AC19",
                    "R03AL02","R03AA01","R03AC18","R03AL01"),
@@ -47,9 +49,7 @@ head(med_data_2)
 
 med_data_all <- rbind(med_data_1,med_data_2)
 head(med_data_all)
-#class(med_data)
-#med_data$type <- ifelse(as.numeric(med_data$exposure.days)>(2*180),1,0)
-#table(med_data$type)
+
 
 med_data_1[,lag_last := shift(lastday,1,"lag"),by=pnr]
 med_data_1[,lead_last := shift(lastday,1,"lead"),by=pnr]
@@ -86,4 +86,5 @@ system.time(LtAt.data <- construct(LtAt.specification, time_unit = 100,
 head(LtAt.data)
 
 
-fwrite(LtAt.data, file = 'final_dataset.csv', row.names = FALSE)
+fwrite(LtAt.data, file = './data/clean/final_dataset.csv', row.names = FALSE)
+save(LtAt.data, file="./data/clean/finaldata.RData")

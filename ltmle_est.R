@@ -2,46 +2,66 @@ rm(list=ls())
 library(ltmle)
 library(here)
 library(dplyr)
+library(data.table)
 # load("./data/clean/finaldata.RData")
 data <- readRDS(here("simulated data/novo_registry_simulated.RDS"))
 
 str(data)
+names(data)
 head(data)
-table(data$death)
+table(data$dementia)
 table(data$A)
 table(data$T1)
 
 # need to expand out the data to get distinct A and Y nodes 
-data$death <-as.numeric(data$death)
-head(data$death)
-table(data$death)
-table(is.na(data$death))
 
-#looking at death first:
+#choose outcome and create outcome var
+clean_outcome <- function(outvar){
 for(i in 1:9){
-  data[,paste0("Y",i)]<- ifelse(data$death>i,0,1)
-  table(data[,paste0("Y",i)],data$death)
-  table(is.na(data[,paste0("Y",i)]),is.na(data$death))
-
-  data[is.na(data[,paste0("Y",i)]),] <-0
+  data[[outvar]] <-as.numeric(data[[outvar]])
+  #head(data[[outvar]])
+  #table(data[[outvar]])
+  #table(is.na(data[[outvar]]))
+  data[,paste0("Y",i)]<- as.numeric(ifelse(data[[outvar]]<=i,1,0))
+  # table(data[,paste0("Y",i)],data[[outvar]])
+  table(is.na(data[,paste0("Y",i)]),is.na(data[[outvar]]))
+  class(data[,paste0("Y",i)])
+  data[is.na(data[paste0("Y",i)]),paste0("Y",i)] <-0
   names(data)[names(data) == paste0("T",i)] <- paste0("A",i)
 }
-names(data)
-table(data$Y1,data$Y2)
+  return(data)
+}
 
+cleandata <- clean_outcome(outvar="dementia")
+names(cleandata)
+table(cleandata$Y1,cleandata$Y2)
+
+#rename the time-varying covariates
+#BMI and kidney disease:
+cleandata <- data.table(cleandata)
+setnames(cleandata, old = c("obese_1","obese_2","obese_3","obese_4","obese_5","obese_6",
+                    "obese_7","obese_8","obese_9","kidney_1","kidney_2","kidney_3",    
+                    "kidney_4","kidney_5","kidney_6","kidney_7","kidney_8",    
+                     "kidney_9" ), new = c("L1a","L2a","L3a","L4a","L5a","L6a",
+                        "L7a","L8a","L9a","L1b","L2b","L3b","L4b","L5b","L6b",
+                        "L7b","L8b","L9b"))
+
+names(cleandata)
 Anodes <- c("A1","A2","A3","A4","A5","A6","A7","A8","A9")
 Ynodes <- c("Y1","Y2","Y3","Y4","Y5","Y6","Y7","Y8","Y9")
 Cnodes <-NULL
-Lnodes <- NULL #c("sex","stroke","age")
-subset <- data %>% select(Anodes,Ynodes)
-head(subset)
+Lnodes <- c("sex","stroke","age","L1a","L2a","L3a","L4a","L5a","L6a",
+            "L7a","L8a","L9a","L1b","L2b","L3b","L4b","L5b","L6b",
+            "L7b","L8b","L9b")
+subset <- cleandata %>% select(Anodes,Lnodes,Ynodes)
+names(subset)
 
-abar <- matrix(1,nrow=nrow(data),ncol=length(Anodes))
-
+abar <- as.vector(rep(1,(length(Anodes))))
+abar
 result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
-                survivalOutcome=TRUE)
+                survivalOutcome=F)
 
 summary(result)
 
-
+#need to account for censoring?

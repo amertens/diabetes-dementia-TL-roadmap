@@ -1,4 +1,5 @@
 
+rm(list=ls())
 library(here)
 library(tidyverse)
 library(holodeck)
@@ -11,6 +12,9 @@ glp1 <- read.csv(here::here("data summaries/glp1-regimes-npar-table.csv"), heade
 sglt2 <- read.csv(here::here("data summaries/sglt2-regimes-npar-table.csv"), header = FALSE)
 head(glp1)
 head(sglt2)
+
+temp <- sglt2 %>% filter(!is.na(as.numeric(dementia)))
+temp2 <- sglt2 %>% filter(!is.na(as.numeric(death)))
 
 #-------------------------------- 
 # Give variable names to datasets
@@ -48,23 +52,67 @@ sglt2_sim$A <- "sglt2"
 
 d <- bind_rows(glp1_sim, sglt2_sim)
 
+d <- d %>% mutate(
+  dementia=as.numeric(dementia),
+  death=as.numeric(death)
+)
+
+table(d$A, d$dementia)
+table(d$A, d$death)
+table(d$A, is.na(d$dementia))
+table(d$A, is.na(d$death))
+table(d$A, is.na(d$dementia)&is.na(d$death))
+table(d$A[d$dementia<8], d$T9[d$dementia<8])
+table(d$A[d$death<8], d$T9[d$death<8])
+
+
 #Drop gaps in treatment
+# dim(d)
+# d <- d %>% mutate(drop=
+#         case_when(T1==0 & T2==0 ~ 1,
+#                   T2==0 & T3==0 & death!=1 & dementia!=1 ~ 1,
+#                   T3==0 & T4==0 & death>2 & dementia>2  ~ 1,
+#                   T4==0 & T5==0 & death>3 & dementia>3  ~ 1,
+#                   T5==0 & T6==0 & death>4 & dementia>4  ~ 1,
+#                   T6==0 & T7==0 & death>5 & dementia>5  ~ 1,
+#                   T7==0 & T8==0 & death>6 & dementia>6  ~ 1,
+#                   T8==0 & T9==0 & death>7 & dementia>7  ~ 1))%>%
+#  filter(is.na(drop))
 dim(d)
 d <- d %>% mutate(drop=
-        case_when(T1==0 & T2==0 ~ 1,
-                  T2==0 & T3==0 ~ 1,
-                  T3==0 & T4==0 ~ 1,
-                  T4==0 & T5==0 ~ 1,
-                  T5==0 & T6==0 ~ 1,
-                  T6==0 & T7==0 ~ 1,
-                  T7==0 & T8==0 ~ 1,
-                  T8==0 & T9==0 ~ 1)) %>%
-  filter(is.na(drop))
+                    case_when(T1==0 & T2==0 ~ 1,
+                              T2==0 & T3==0  ~ 1,
+                              T3==0 & T4==0   ~ 1,
+                              T4==0 & T5==0   ~ 1,
+                              T5==0 & T6==0   ~ 1,
+                              T6==0 & T7==0   ~ 1,
+                              T7==0 & T8==0   ~ 1,
+                              T8==0 & T9==0 ~ 1))
+d$drop[!is.na(d$dementia) | !is.na(d$death)] <-  NA
+d <- d %>% filter(is.na(drop))
+
+table(d$A, d$death, d$drop)
+table(d$A, d$dementia, d$drop)
+table(d$A, d$dementia, is.na(d$drop))
+
+#recode T1=T9 as 1==GLP1
+d <- d %>% mutate(
+  T1 =ifelse(A=="glp1",1,0),
+  T2 =ifelse(A=="glp1",1,0),
+  T3 =ifelse(A=="glp1",1,0),
+  T4 =ifelse(A=="glp1",1,0),
+  T5 =ifelse(A=="glp1",1,0),
+  T6 =ifelse(A=="glp1",1,0),
+  T7 =ifelse(A=="glp1",1,0),
+  T8 =ifelse(A=="glp1",1,0),
+  T9 =ifelse(A=="glp1",1,0)
+)
+
 
 dim(d)
 head(d)
-table(d$death)
-table(d$dementia)
+table(d$A,d$death)
+table(d$A,d$dementia)
 
 d <- d %>% mutate(
   age=factor(age),
@@ -72,8 +120,11 @@ d <- d %>% mutate(
   any_dementia= ifelse(is.na(as.numeric(dementia)),0,1)
 )
 
-table(d$any_death)
+table(d$A, d$any_death)
 table(d$any_dementia)
+
+d[d$death==" 2",]
+d[d$dementia==" 2",]
 
 #Add baseline confounders by outcome status
 # https://cran.r-project.org/web/packages/holodeck/vignettes/simulating-data.html

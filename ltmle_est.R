@@ -13,6 +13,12 @@ table(data$dementia)
 table(data$A)
 table(data$T1)
 
+table(data$A, data$dementia)
+table(data$A, data$death)
+
+
+
+
 # need to expand out the data to get distinct A and Y nodes 
 
 #choose outcome and create outcome var
@@ -32,7 +38,7 @@ for(i in 1:9){
   return(data)
 }
 
-cleandata <- clean_outcome(outvar="dementia")
+cleandata <- clean_outcome(outvar="death")
 names(cleandata)
 table(cleandata$Y1,cleandata$Y2)
 
@@ -56,8 +62,8 @@ Lnodes <- c("sex","stroke","age","L1a","L2a","L3a","L4a","L5a","L6a",
 subset <- cleandata %>% select(Anodes,Lnodes,Ynodes)
 names(subset)
 
-abar <- as.vector(rep(1,(length(Anodes))))
-abar
+
+abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
                 survivalOutcome=F)

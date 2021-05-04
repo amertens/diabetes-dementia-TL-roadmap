@@ -13,6 +13,7 @@ table(data$dementia)
 table(data$A)
 table(data$T1)
 
+table(data$A, data$any_dementia)
 table(data$A, data$dementia)
 table(data$A, data$death)
 
@@ -38,7 +39,7 @@ for(i in 1:9){
   return(data)
 }
 
-cleandata <- clean_outcome(outvar="death")
+cleandata <- clean_outcome(outvar="dementia")
 names(cleandata)
 table(cleandata$Y1,cleandata$Y2)
 

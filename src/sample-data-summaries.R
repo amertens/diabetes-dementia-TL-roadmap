@@ -64,6 +64,8 @@ df <- sglt2 %>% mutate(
 )
 df %>% group_by(any_drug) %>% summarise(sum(weight))
 
+table(df$dementia, df$any_drug)
+table(df$death, df$any_drug)
 table(df$any_event, df$any_drug)
 df %>% group_by(any_drug, any_event) %>% summarise(sum(weight))
 

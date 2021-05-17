@@ -15,8 +15,8 @@ rnorm_trunc <- function(n, mean, sd, minval = 17){
 }
 
 
-load(here("results/simulation_results.Rdata"))
-D <- readRDS(here("simulated data/simulated_dag.RDS"))
+load(here("results/simulation_results_RD.Rdata"))
+D <- readRDS(here("simulated data/simulated_dag_RD.RDS"))
 
 sim_res_glm <- sim_res_glm %>% mutate(est=as.numeric(est), var=as.numeric(var))
 sim_res_glm_adj  <- sim_res_glm_adj %>% mutate(est=as.numeric(est), var=as.numeric(var))
@@ -25,45 +25,25 @@ sim_res_tmle <- sim_res_tmle %>% mutate(est=as.numeric(est), var=as.numeric(var)
 sim_res_ltmle <- sim_res_ltmle %>% mutate(est=as.numeric(est), var=as.numeric(var))
 
 
-act_t0_theta <- node("A",t=0:9, distr="rbern", prob=ifelse(theta==1,1,0))
+act_t0_theta <- node("A",t=0:3, distr="rbern", prob=ifelse(theta==1,1,0))
 D <- D + action("A_th0", nodes=c(act_t0_theta), theta=0)
 D <- D + action("A_th1", nodes=c(act_t0_theta), theta=1)
 
-D <- set.targetE(D, outcome="Y", t=0:9, param="A_th1 / A_th0")
+D <- set.targetE(D, outcome="Y", t=0:3, param="A_th1 - A_th0")
 eval <- eval.target(D, n=50000)
-trueRR <- eval$res[10]
+trueRD <- eval$res[4]
 
-D <- set.targetE(D, outcome="Y", t=9, param="A_th1 / A_th0")
+D <- set.targetE(D, outcome="Y", t=3, param="A_th1 - A_th0")
 eval.target(D, n=50000)
 
-D <- set.targetE(D, outcome="Y", t=9, param="A_th1 - A_th0")
-eval.target(D, n=50000)
-
-
-# 
-# D <- set.targetE(D, outcome="Y", t=9, param="A_th1 / A_th0")
-# trueRR <- eval.target(D, n=50000)$res
-
-# sim_res <- bind_rows(
-#   calc_mse(sim_res_glm, trueRR, model="Unadjusted GLM"),
-#   calc_mse(sim_res_glm_adj, trueRR, model="Adjusted GLM"),
-#   calc_mse(sim_res_tmle_glm, trueRR, model="TMLE fit with GLM"),
-#   calc_mse(sim_res_tmle, trueRR, model="TMLE fit with SL")
-# )
-
-# ggplot(sim_res, aes(x=model, y=est)) + 
-#   geom_point() + geom_linerange(aes(ymin=est.lb, ymax=est.ub)) +
-#   #geom_hline(yintercept=0) +
-#   facet_wrap(~metric, scales="free") + coord_flip() +
-#   theme_bw()
 
 
 sim_res <- bind_rows(
-  data.frame(sim_res_glm, trueRR=trueRR, model="Unadjusted GLM"),
-  data.frame(sim_res_glm_adj, trueRR=trueRR, model="Adjusted GLM"),
-  data.frame(sim_res_tmle_glm, trueRR=trueRR, model="TMLE fit with GLM"),
-  data.frame(sim_res_tmle, trueRR=trueRR, model="TMLE fit with SL"),
-  data.frame(sim_res_ltmle, trueRR=trueRR, model="longitudinal TMLE")
+  data.frame(sim_res_glm, trueRD=trueRD, model="Unadjusted GLM"),
+  data.frame(sim_res_glm_adj, trueRD=trueRD, model="Adjusted GLM"),
+  data.frame(sim_res_tmle_glm, trueRD=trueRD, model="TMLE fit with GLM"),
+  data.frame(sim_res_tmle, trueRD=trueRD, model="TMLE fit with SL"),
+  data.frame(sim_res_ltmle, trueRD=trueRD, model="longitudinal TMLE")
 )
 
 sim_res <- sim_res %>% mutate(
@@ -72,26 +52,23 @@ sim_res <- sim_res %>% mutate(
 ) %>% arrange(model, metric)
 
 sim_res %>%
-  mutate(est=log(est), trueRR=log(trueRR)) %>%
   group_by(model) %>% # grouping 
-  do(calc_absolute(., estimates = est, true_param = trueRR)) %>%
+  do(calc_absolute(., estimates = est, true_param = trueRD)) %>%
   mutate(model=factor(model, levels=(c("Unadjusted GLM", "Adjusted GLM", "TMLE fit with GLM", "TMLE fit with SL")))) %>%
   arrange(model) %>%
   knitr::kable()
 
 sim_res %>%
-  mutate(est=log(est), trueRR=log(trueRR)) %>%
   group_by(model) %>% # grouping 
-  do(calc_relative(., estimates = est, true_param = trueRR)) %>%
+  do(calc_relative(., estimates = est, true_param = trueRD)) %>%
   mutate(model=factor(model, levels=(c("Unadjusted GLM", "Adjusted GLM", "TMLE fit with GLM", "TMLE fit with SL")))) %>%
   arrange(model) %>%
   knitr::kable()
 
 
 sim_res <- sim_res %>%
-  mutate(est=log(est), trueRR=log(trueRR)) %>%
   group_by(model) %>% # grouping 
-  do(calc_absolute(., estimates = est, true_param = trueRR)) %>%
+  do(calc_absolute(., estimates = est, true_param = trueRD)) %>%
   gather(bias:rmse_mcse,  key = metric, value = est) %>%
   filter(metric!="rmse" & metric!="rmse_mcse")
 sim_res_est <- sim_res %>% filter(!grepl("_mcse",metric))

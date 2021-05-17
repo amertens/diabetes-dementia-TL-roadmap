@@ -14,7 +14,7 @@ heaven::simPop(10)
 heaven::simAdmissionData(10)
 # purchase of medicine
 df<-heaven::simPrescriptionData(10)  
-
+df
 table(df$atc)
 
 # http://medinfo.dk/sks/brows.php 

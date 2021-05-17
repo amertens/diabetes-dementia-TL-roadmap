@@ -185,7 +185,6 @@ Lnodes <- c("La_1","Lb_1","L1c","L1d","L1f","L1g","L1h",
 
 
 lib = c("SL.glm")
-glib = c("SL.glm")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
@@ -210,7 +209,7 @@ for(i in 1:N_sim){
   abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
   result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes,
                   Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
-                  survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
+                  survivalOutcome=F,SL.library=lib,variance.method = "ic")
   
   res<-summary(result)
   sim_res_ltmle$est[i] <- try(res$effect.measures$RR$estimate)

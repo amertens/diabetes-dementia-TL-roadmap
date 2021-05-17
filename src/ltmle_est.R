@@ -92,25 +92,18 @@ subset <- cleandata %>% select(
 
 names(subset)
 #SL.library<- c( "SL.step", "SL.mean")#, "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
-<<<<<<< HEAD:ltmle_est.R
 #SL.library<- c( "SL.glm", "SL.mean", "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
 #SL.library<- c(  "SL.mean","SL.glm", "SL.gam","SL.glmnet", "SL.randomForest")#"SL.glm","SL.xgboost",
 SL.library<- c(  "SL.mean","SL.glm", "SL.glmnet")#"SL.glm","SL.xgboost",
 SL.library<- c(  "SL.mean","SL.glm","SL.glmnet", "SL.randomForest")#"SL.glm","SL.xgboost",
-
-=======
 SL.library<- c( "SL.glm", "SL.mean")
-#SL.library<- c(  "SL.mean","SL.glm","SL.glmnet", "SL.randomForest")
->>>>>>> 8d1e8fa52a99406eeb99ea30b85a41714ba1a4dc:src/ltmle_est.R
 
 set.seed(12345)
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
-<<<<<<< HEAD:ltmle_est.R
-=======
+
 result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes,
                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
                 survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
->>>>>>> 8d1e8fa52a99406eeb99ea30b85a41714ba1a4dc:src/ltmle_est.R
 
 # start_time <- Sys.time()
 # result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 

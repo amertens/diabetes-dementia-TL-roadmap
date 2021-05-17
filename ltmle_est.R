@@ -89,14 +89,24 @@ subset <- cleandata %>% select(
   "L9a","L9b","A9",Ynodes)
 
 names(subset)
-SL.library<- c( "SL.step", "SL.mean")#, "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
+#SL.library<- c( "SL.step", "SL.mean")#, "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
+#SL.library<- c( "SL.glm", "SL.mean", "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
+#SL.library<- c(  "SL.mean","SL.glm", "SL.gam","SL.glmnet", "SL.randomForest")#"SL.glm","SL.xgboost",
+SL.library<- c(  "SL.mean","SL.glm", "SL.glmnet")#"SL.glm","SL.xgboost",
+SL.library<- c(  "SL.mean","SL.glm","SL.glmnet", "SL.randomForest")#"SL.glm","SL.xgboost",
+
 
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
-result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
-                Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
-                survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
 
-summary(result)
+# start_time <- Sys.time()
+# result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
+#                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
+#                 survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
+# end_time <- Sys.time()
+# 
+# end_time - start_time
+# 
+# summary(result)
 
 get_estimates <- function(gcomp_output,est_type){
   #CRUDE ESTIMATE
@@ -121,7 +131,11 @@ get_estimates <- function(gcomp_output,est_type){
 }
 
 
+set.seed(1235)
+start_time <- Sys.time()
 system.time((est_tmle <- get_estimates(gcomp_output=F,est_type="tmle")))
+end_time <- Sys.time()
+
 rio::export(est_tmle, file="outcome_estimates_tmle.csv")
 
 system.time((est_iptw <- get_estimates(gcomp_output=F,est_type="iptw")))
@@ -135,7 +149,7 @@ estimates <-rbind(est_tmle,est_iptw,est_gcomp)
 rio::export(estimates, file="outcome_estimates_ltmle.csv")
 
 
-
+ave(list = ls(all.names = TRUE), file = "res.RData", envir = .GlobalEnv)
 
 #plot of results
 

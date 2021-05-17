@@ -54,6 +54,8 @@ setnames(cleandata, old = c("obese_1","obese_2","obese_3","obese_4","obese_5","o
                         "L7b","L8b","L9b"))
 setnames(cleandata, old = c("sex","stroke","age","income","diabduration"),new=c("L1c","L1d","L1f","L1g","L1h"))
 names(cleandata)
+saveRDS(cleandata, file = here("simulated data/clean_data.RDS"))
+
 Anodes <- c("A1","A2","A3","A4","A5","A6","A7","A8","A9")
 Ynodes <- c("Y1","Y2","Y3","Y4","Y5","Y6","Y7","Y8","Y9")
 Cnodes <-NULL
@@ -95,11 +97,11 @@ SL.library<- c( "SL.glm", "SL.mean")
 
 set.seed(12345)
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
-# result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
-#                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
-#                 survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
-# 
-# summary(result)
+result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes,
+                Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
+                survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
+
+summary(result)
 
 get_estimates <- function(gcomp_output,est_type){
   #CRUDE ESTIMATE

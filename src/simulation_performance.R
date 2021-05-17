@@ -18,11 +18,11 @@ rnorm_trunc <- function(n, mean, sd, minval = 17){
 load(here("results/simulation_results.Rdata"))
 D <- readRDS(here("simulated data/simulated_dag.RDS"))
 
-sim_res_glm
-sim_res_glm_adj 
-sim_res_tmle_glm
-sim_res_tmle
-
+sim_res_glm <- sim_res_glm %>% mutate(est=as.numeric(est), var=as.numeric(var))
+sim_res_glm_adj  <- sim_res_glm_adj %>% mutate(est=as.numeric(est), var=as.numeric(var))
+sim_res_tmle_glm <- sim_res_tmle_glm %>% mutate(est=as.numeric(est), var=as.numeric(var))
+sim_res_tmle <- sim_res_tmle %>% mutate(est=as.numeric(est), var=as.numeric(var))
+sim_res_ltmle <- sim_res_ltmle %>% mutate(est=as.numeric(est), var=as.numeric(var))
 
 
 act_t0_theta <- node("A",t=0:9, distr="rbern", prob=ifelse(theta==1,1,0))
@@ -33,9 +33,9 @@ eval <- eval.target(D, n=50000)
 trueRR <- eval$res[10]
 
 
-
-D <- set.targetE(D, outcome="Y", t=9, param="A_th1 / A_th0")
-trueRR <- eval.target(D, n=50000)$res
+# 
+# D <- set.targetE(D, outcome="Y", t=9, param="A_th1 / A_th0")
+# trueRR <- eval.target(D, n=50000)$res
 
 # sim_res <- bind_rows(
 #   calc_mse(sim_res_glm, trueRR, model="Unadjusted GLM"),
@@ -55,11 +55,12 @@ sim_res <- bind_rows(
   data.frame(sim_res_glm, trueRR=trueRR, model="Unadjusted GLM"),
   data.frame(sim_res_glm_adj, trueRR=trueRR, model="Adjusted GLM"),
   data.frame(sim_res_tmle_glm, trueRR=trueRR, model="TMLE fit with GLM"),
-  data.frame(sim_res_tmle, trueRR=trueRR, model="TMLE fit with SL")
+  data.frame(sim_res_tmle, trueRR=trueRR, model="TMLE fit with SL"),
+  data.frame(sim_res_ltmle, trueRR=trueRR, model="longitudinal TMLE")
 )
 
 sim_res <- sim_res %>% mutate(
-  model=factor(model, levels=rev(c("Unadjusted GLM", "Adjusted GLM", "TMLE fit with GLM", "TMLE fit with SL"))),
+  model=factor(model, levels=rev(c("Unadjusted GLM", "Adjusted GLM", "TMLE fit with GLM", "TMLE fit with SL", "longitudinal TMLE"))),
   metric=factor(metric, levels=c("Variance", "Bias", "MSE"))
 ) %>% arrange(model, metric)
 

@@ -82,7 +82,6 @@ tab<- table(dat$A_3==1, dat$Y_3)
 
 #simulation parameters
 N_sim<-100
-N_sim<-2
 #ndata<-5000 #could vary this with runif()
 set.seed(12345)
 ndata<- ceiling(runif(N_sim)*10)^4 + ceiling(runif(N_sim)*100)^2 +100
@@ -117,8 +116,8 @@ for(i in 1:N_sim){
   dat <- sim(D,n=ndata[i], LTCF="Y", verbose=F, rndseed=i) 
   res=NULL
   res <- try(tmle(Y=dat$Y_3, A=dat$A_0, W=subset(dat, select= c(CVD:bmi)), family="gaussian",Q.SL.library = c("SL.glm"),g.SL.library = c("SL.glm")))
-  sim_res_tmle_glm$est[i] <- try(res$estimates$RR$psi)
-  sim_res_tmle_glm$var[i] <- try(res$estimates$RR$var.log.psi)
+  sim_res_tmle_glm$est[i] <-  try(res$estimates$ATE$psi)
+  sim_res_tmle_glm$var[i] <-  try(res$estimates$ATE$var.psi)
 }
 sim_res_tmle_glm
 saveRDS(sim_res_tmle_glm,  file=here("results/simulation_results_tmle_glm_RD.RDS"))
@@ -147,7 +146,7 @@ Lnodes <- c("La_1","Lb_1","L1c","L1d","L1f","L1g","L1h",
             "La_3","Lb_3")
 
 
-lib = c("SL.glm")
+lib = c("SL.glm","SL.glmnet","SL.glm.interaction")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))

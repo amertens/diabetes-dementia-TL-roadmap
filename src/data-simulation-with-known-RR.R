@@ -66,7 +66,7 @@ D <- DAG.empty() +
   node("A", t=0, distr="rbern", prob=plogis(.08*CVD + .005*diab.dur + 0.1*educ + .0025*bmi + U.A -.4)) + 
   node("La", t=0, distr="rbern", prob=plogis(-2 - 0.3*CVD - 0.5*A[t])) +
   node("Lb", t=0, distr="rbern", prob=plogis(-2 - 0.3*CVD - 0.5*A[t])) +
-  node("A", t=1:9, distr="rbern", prob=A[t-1] ) +
+  node("A", t=1:9, distr="rbern", prob=plogis(A[t-1] )) +
   node("La", t=1:9, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*La[t-1])) +
   node("Lb", t=1:9, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*Lb[t-1])) +
   node("Y", t=0:9, distr="rbern", prob=plogis( -3 - 1.2*La[t] - 1.2*Lb[t] - 0.001*income*educ + diab.dur/10 * 0.1*CVD - 0.4*A[t] +0.01*bmi -0.02*A[t]*bmi + U.Y), EFU=TRUE)

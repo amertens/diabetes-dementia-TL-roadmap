@@ -30,8 +30,9 @@ D <- D + action("A_th0", nodes=c(act_t0_theta), theta=0)
 D <- D + action("A_th1", nodes=c(act_t0_theta), theta=1)
 
 D <- set.targetE(D, outcome="Y", t=0:3, param="A_th1 - A_th0")
-eval <- eval.target(D, n=50000)
+eval <- eval.target(D, n=500000)
 trueRD <- eval$res[4]
+trueRD
 
 D <- set.targetE(D, outcome="Y", t=3, param="A_th1 - A_th0")
 eval.target(D, n=50000)

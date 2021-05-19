@@ -15,7 +15,7 @@ library(ltmle)
 #https://cran.r-project.org/web/packages/simhelpers/vignettes/MCSE.html
 library(simhelpers)
 
-#Truncated continious
+#function for Truncated continious distribution
 rnorm_trunc <- function(n, mean, sd, minval = 17){
      out <- rnorm(n = n, mean = mean, sd = sd)
      minval <- minval[1]
@@ -26,7 +26,7 @@ rnorm_trunc <- function(n, mean, sd, minval = 17){
 
 
 
-
+#SEM for complicated longitudinal data with time-dependent confounders La and Lb
 D <- DAG.empty() + 
   node("CVD", distr="rcat.b1", probs = c(0.5, 0.25, 0.25)) +
   node("educ", distr="rcat.b1", probs = c(0.52,0.308,0.094,0.078)) +
@@ -43,10 +43,11 @@ D <- DAG.empty() +
   node("Lb", t=1:3, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*Lb[t-1])) +
   node("Y", t=0:3, distr="rbern", prob=plogis( -3 - 1.2*La[t] - 1.2*Lb[t] - 0.001*income*educ + diab.dur/10 * 0.1*CVD - A[t] +0.01*bmi -0.08*A[t]*bmi + U.Y), EFU=TRUE)
 
-
+#Set DAG and save
 D <- set.DAG(D)
 saveRDS(D, file=here("simulated data/simulated_dag_RD.RDS"))
 
+#example simulation of the data and crosstabs
 dat <- sim(D,n=5000, LTCF="Y", verbose=T, rndseed=12345) #Do I need to fill in censoring with LTCF argument?
 head(dat)
 
@@ -64,31 +65,41 @@ table(dat$Y_0)
 table(dat$Y_3)
 table(dat$A_3==1, dat$Y_3)
 tab<- table(dat$A_3==1, dat$Y_3)
+
+#Crude OR and RD
 (tab[1,1]*tab[2,2])/(tab[1,2]*tab[2,1])
 (tab[1,1]/(tab[1,1]+tab[1,2])) - (tab[2,1]/(tab[2,1]+tab[2,2]))
 
   
+#Nerissa: here is the code to estimate the true RD, but I fear I am setting it up 
+#wrong. I set actions, but the eval.target command gives me the warning
+#"no actions specified, sampling full data for ALL actions from the DAG"
+# and the RD seems very far off the simulated results. 
+act_t0_theta <- node("A",t=0:3, distr="rbern", prob=ifelse(theta==1,1,0))
+D <- D + action("A_th0", nodes=c(act_t0_theta), theta=0)
+D <- D + action("A_th1", nodes=c(act_t0_theta), theta=1)
+D <- set.targetE(D, outcome="Y", t=0:3, param="A_th1 - A_th0")
+eval <- eval.target(D, n=500000, rndseed=12345)
+eval$res
+
+trueRD <- eval$res[4]
+trueRD
 
 
 
 
-# act_t0_theta <- node("A",t=0:9, distr="rbern", prob=ifelse(theta==1,1,0))
-# D <- D + action("A_th0", nodes=c(act_t0_theta), theta=0)
-# D <- D + action("A_th1", nodes=c(act_t0_theta), theta=1)
-# D <- set.targetE(D, outcome="Y", t=0:9, param="A_th1 / A_th0")
-# eval.target(D, n=5000)
-# 
-# D <- set.targetE(D, outcome="Y", t=9, param="A_th1 / A_th0")
-# trueRR <- eval.target(D, n=5000)$res
+# set up simulation parameters
+N_sim<-100 #100 datasets to estimate on
 
-
-
-#simulation parameters
-N_sim<-100
-#ndata<-5000 #could vary this with runif()
+#Get a list of different dataset sizes
 set.seed(12345)
 ndata<- ceiling(runif(N_sim)*10)^4 + ceiling(runif(N_sim)*100)^2 +100
 summary(ndata)
+
+
+#-------------------------------------
+#Unadjusted regression
+#-------------------------------------
 
 sim_res_glm <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 for(i in 1:N_sim){
@@ -101,7 +112,10 @@ for(i in 1:N_sim){
 sim_res_glm
 saveRDS(sim_res_glm,  file=here("results/simulation_results_glm_RD.RDS"))
 
-  
+
+#-------------------------------------
+#Adjusted regression
+#-------------------------------------  
 
 sim_res_glm_adj <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 for(i in 1:N_sim){
@@ -114,6 +128,11 @@ for(i in 1:N_sim){
 sim_res_glm_adj
 saveRDS(sim_res_glm_adj,  file=here("results/simulation_results_glm_adj_RD.RDS"))
 
+
+#-------------------------------------
+# TMLE fit with regression
+#-------------------------------------
+
 sim_res_tmle_glm <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 for(i in 1:N_sim){
   dat <- sim(D,n=ndata[i], LTCF="Y", verbose=F, rndseed=i) 
@@ -124,6 +143,11 @@ for(i in 1:N_sim){
 }
 sim_res_tmle_glm
 saveRDS(sim_res_tmle_glm,  file=here("results/simulation_results_tmle_glm_RD.RDS"))
+
+
+#-------------------------------------
+# TMLE fit with SL
+#-------------------------------------
 
 sim_res_tmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 #lib = c("SL.glm","SL.glmnet","SL.glm.interaction","SL.randomForest")
@@ -140,7 +164,9 @@ sim_res_tmle
 saveRDS(sim_res_tmle,  file=here("results/simulation_results_tmle_RD.RDS"))
 
 
-
+#-------------------------------------
+# LTMLE 
+#-------------------------------------
 Anodes <- c("A_1","A_2","A_3")
 Ynodes <- c("Y_1","Y_2","Y_3")
 Cnodes <-NULL

@@ -38,9 +38,9 @@ D <- DAG.empty() +
   node("A", t=0, distr="rbern", prob=plogis(.08*CVD + .005*diab.dur + 0.1*educ + .0025*bmi + U.A -.4)) + 
   node("La", t=0, distr="rbern", prob=plogis(-2 - 0.3*CVD - 0.5*A[t])) +
   node("Lb", t=0, distr="rbern", prob=plogis(-2 - 0.3*CVD - 0.5*A[t])) +
-  node("A", t=1:3, distr="rbern", prob=plogis(A[t-1] - Y[t-1] - 0.5*La[t-1] - .5*Lb[t-1])) +
-  node("La", t=1:3, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*La[t-1]+ Y[t-1])) +
-  node("Lb", t=1:3, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*Lb[t-1]+ Y[t-1])) +
+  node("A", t=1:3, distr="rbern", prob=plogis(A[t-1]  - 0.5*La[t-1] - .5*Lb[t-1])) +
+  node("La", t=1:3, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*La[t-1])) +
+  node("Lb", t=1:3, distr="rbern", prob=plogis(-3 - 0.3*CVD + diab.dur +bmi + educ + -0.5*A[t] + 1.5*Lb[t-1])) +
   node("Y", t=0:3, distr="rbern", prob=plogis( -3 - 1.2*La[t] - 1.2*Lb[t] - 0.001*income*educ + diab.dur/10 * 0.1*CVD - A[t] +0.01*bmi -0.08*A[t]*bmi + U.Y), EFU=TRUE)
 
 
@@ -65,6 +65,9 @@ table(dat$Y_3)
 table(dat$A_3==1, dat$Y_3)
 tab<- table(dat$A_3==1, dat$Y_3)
 (tab[1,1]*tab[2,2])/(tab[1,2]*tab[2,1])
+(tab[1,1]/(tab[1,1]+tab[1,2])) - (tab[2,1]/(tab[2,1]+tab[2,2]))
+
+  
 
 
 
@@ -146,7 +149,8 @@ Lnodes <- c("La_1","Lb_1","L1c","L1d","L1f","L1g","L1h",
             "La_3","Lb_3")
 
 
-lib = c("SL.glm","SL.glm.interaction")
+
+lib = c("SL.glm")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
@@ -184,4 +188,40 @@ save(
   file=here("results/simulation_results_RD.Rdata")
 )
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# lib = c("SL.glm")
+# abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
+# i<-1
+# 
+#   dat <- sim(D,n=ndata[i], LTCF="Y", verbose=F, rndseed=i) 
+#   subset <- dat %>% rename(
+#     L1c=CVD, L1d=educ, L1f=diab.dur, L1g=income,  L1h=bmi,
+#   ) %>%
+#     select(
+#       "La_1","Lb_1","L1c","L1d","L1f","L1g","L1h","A_1",
+#       "La_2","Lb_2","A_2",
+#       "La_3","Lb_3","A_3",Ynodes)
+#   res=NULL
+#   
+#   set.seed(12345)
+#   abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
+#   result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes,
+#                   Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
+#                   survivalOutcome=T,SL.library=lib,variance.method = "ic")
+#   
+#   res<-summary(result)
+#   res
 

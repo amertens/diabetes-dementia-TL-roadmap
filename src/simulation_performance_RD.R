@@ -25,18 +25,26 @@ sim_res_tmle <- sim_res_tmle %>% mutate(est=as.numeric(est), var=as.numeric(var)
 sim_res_ltmle <- sim_res_ltmle %>% mutate(est=as.numeric(est), var=as.numeric(var))
 
 
-act_t0_theta <- node("A",t=0:3, distr="rbern", prob=ifelse(theta==1,1,0))
-D <- D + action("A_th0", nodes=c(act_t0_theta), theta=0)
-D <- D + action("A_th1", nodes=c(act_t0_theta), theta=1)
 
 D <- set.targetE(D, outcome="Y", t=0:3, param="A_th1 - A_th0")
-eval <- eval.target(D, n=500000)
+eval <- eval.target(D, n=500000, rndseed=12345)
 trueRD <- eval$res[4]
 trueRD
 
-D <- set.targetE(D, outcome="Y", t=3, param="A_th1 - A_th0")
-eval.target(D, n=50000)
 
+mean(sim_res_glm$est)
+mean(sim_res_tmle$est)
+mean(sim_res_ltmle$est)
+
+D <- set.targetE(D, outcome="Y", t=0:3, param="A_1 - A_0")
+ eval.target(D, n=50000)
+ 
+ dat <- sim(D,n=5000, LTCF="Y", verbose=T, rndseed=12345) #Do I need to fill in censoring with LTCF argument?
+ head(dat)
+
+# D <- set.targetE(D, outcome="Y", t=3, param="A_th1 - A_th0")
+# trueRD <-eval.target(D, n=50000)$res
+# trueRD
 
 
 sim_res <- bind_rows(

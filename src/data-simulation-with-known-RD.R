@@ -146,7 +146,7 @@ Lnodes <- c("La_1","Lb_1","L1c","L1d","L1f","L1g","L1h",
             "La_3","Lb_3")
 
 
-lib = c("SL.glm","SL.glmnet","SL.glm.interaction")
+lib = c("SL.glm","SL.glm.interaction")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))

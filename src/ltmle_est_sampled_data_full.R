@@ -11,17 +11,23 @@ names(data)
 head(data)
 table(data$dementia)
 table(data$A)
-table(data$T1)
 
 table(data$A, data$any_dementia)
 table(data$A, data$dementia)
 table(data$A, data$death)
 
-data$death[data$death>3] <- 3
-table(data$A, data$death)
+table(data$Aglp_1, data$dementia)
+table(data$Asglt_1, data$dementia)
+table(data$Aglp_2, data$dementia)
+table(data$Asglt_2, data$dementia)
+table(data$Aglp_3, data$dementia)
+table(data$Asglt_3, data$dementia)
 
-data$dementia[data$dementia>3] <- 3
-table(data$A, data$dementia)
+# data$death[data$death>3] <- 3
+# table(data$A, data$death)
+# 
+# data$dementia[data$dementia>3] <- 3
+# table(data$A, data$dementia)
 
 # need to expand out the data to get distinct A and Y nodes 
 
@@ -32,19 +38,24 @@ for(i in 1:9){
   #head(data[[outvar]])
   #table(data[[outvar]])
   #table(is.na(data[[outvar]]))
-  data[,paste0("Y",i)]<- as.numeric(ifelse(data[[outvar]]<=i,1,0))
+  data[,paste0("Y",i)]<- as.numeric(ifelse(data[[outvar]]<=i & data[[outvar]]>0,1,0))
   # table(data[,paste0("Y",i)],data[[outvar]])
   table(is.na(data[,paste0("Y",i)]),is.na(data[[outvar]]))
   class(data[,paste0("Y",i)])
   data[is.na(data[paste0("Y",i)]),paste0("Y",i)] <-0
-  names(data)[names(data) == paste0("T",i)] <- paste0("A",i)
 }
   return(data)
 }
 
 cleandata <- clean_outcome(outvar="dementia")
-names(cleandata)
-table(cleandata$Y1,cleandata$Y2)
+
+table(cleandata$Aglp_1, cleandata$Y3)
+table(cleandata$Asglt_1 , cleandata$Y3)
+table(cleandata$Aglp_2, cleandata$Y3)
+table(cleandata$Asglt_2 , cleandata$Y3)
+table(cleandata$Aglp_3, cleandata$Y3)
+table(cleandata$Asglt_3 , cleandata$Y3)
+
 
 #rename the time-varying covariates
 #BMI and kidney disease:
@@ -57,27 +68,26 @@ setnames(cleandata, old = c("obese_1","obese_2","obese_3","obese_4","obese_5","o
                         "L7b","L8b","L9b"))
 setnames(cleandata, old = c("sex","stroke","age","income", "diabduration"),new=c("L1c","L1d","L1f","L1g","L1h"))
 names(cleandata)
-Anodes <- c("A1","A2","A3")
-Ynodes <- c("Y1","Y2","Y3")
+Anodes <- c("Aglp_1","Asglt_1","Aglp_2","Asglt_2","Aglp_3","Asglt_3",
+            "Aglp_4","Asglt_4","Aglp_5","Asglt_5","Aglp_6","Asglt_6",
+            "Aglp_7","Asglt_7","Aglp_8","Asglt_8","Aglp_9","Asglt_9")
+Ynodes <- c("Y1","Y2","Y3","Y4","Y5","Y6","Y7","Y8","Y9")
 Cnodes <-NULL
 Lnodes <- c("L1a","L1b","L1c","L1d","L1f","L1g","L1h",
-             "L2a","L2b",
-             "L3a","L3b")
+             "L2a","L2b","L3a","L3b","L4a","L4b","L5a","L5b",
+            "L6a","L6b","L7a","L7b","L8a","L8b","L9a","L9b")
 
-# subset <- cleandata %>% select(
-#                                "L1a","L1b","L1c","L1d","L1f","A1","Y1",
-#                                "L2a","L2b","A2","Y2",
-#                                "L3a","L3b","A3","Y3",
-#                                "L4a","L4b","A4","Y4",
-#                                "L5a","L5b","A5","Y5",
-#                                "L6a","L6b","A6","Y6",
-#                                "L7a","L7b","A7","Y7",
-#                                "L8a","L8b","A8","Y8",
-#                                "L9a","L9b","A9","Y9")
 subset <- cleandata %>% select(
-  "L1a","L1b","L1c","L1d","L1f","L1g","L1h","A1",
-  "L2a","L2b","A2",
-  "L3a","L3b","A3",Ynodes)
+  "L1a","L1b","L1c","L1d","L1f","L1g","L1h","Aglp_1","Asglt_1",
+  "L2a","L2b","Aglp_2","Asglt_2",
+  "L3a","L3b","Aglp_3","Asglt_3",
+  "L4a","L4b","Aglp_4","Asglt_4",
+  "L5a","L5b","Aglp_5","Asglt_5",
+  "L6a","L6b","Aglp_6","Asglt_6",
+  "L7a","L7b","Aglp_7","Asglt_7",
+  "L8a","L8b","Aglp_8","Asglt_8",
+  "L9a","L9b","Aglp_9","Asglt_9",
+  Ynodes)
 
 names(subset)
 #SL.library<- c( "SL.step", "SL.mean")#, "SL.ranger","SL.nnet", "SL.biglasso")#"SL.glm","SL.xgboost",
@@ -85,12 +95,25 @@ SL.library<- c( "SL.glm")
 #SL.library<- c(  "SL.mean","SL.glm","SL.glmnet", "SL.randomForest")
 
 set.seed(12345)
-abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
-# result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes, 
+abar <- list(a=rep(c(1,0),(length(Anodes)/2)), b=rep(c(0,1),(length(Anodes)/2)))
+# result <- ltmle(subset, Anodes = Anodes, Ynodes = Ynodes,
 #                 Cnodes=Cnodes, Lnodes=Lnodes, abar = abar,
 #                 survivalOutcome=F,SL.library=SL.library,variance.method = "ic")
 # 
 # summary(result)
+# 
+# 
+# #CRUDE ESTIMATE
+# data_crude <- subset %>% select(Anodes, Ynodes)
+# out <-  ltmle(data_crude, Anodes = Anodes, Ynodes = Ynodes, 
+#               Cnodes=Cnodes, Lnodes=NULL, abar = abar,
+#               survivalOutcome=F,SL.library=SL.library,gcomp=F,
+#               variance.method = "ic")
+# summary(out)
+# 
+# 
+# gcomp_output=F
+# est_type="tmle"
 
 get_estimates <- function(gcomp_output,est_type){
   #CRUDE ESTIMATE
@@ -120,10 +143,10 @@ summary(est_tmle$fit_unadj)$effect.measures$RR
 summary(est_tmle$fit_adj)$effect.measures$RR
 
 system.time((est_iptw <- get_estimates(gcomp_output=F,est_type="iptw")))
-rio::export(est_iptw, file="outcome_estimates_iptw.csv")
 
 system.time((est_gcomp <- get_estimates(gcomp_output=T,est_type="gcomp")))
 
+save(est_tmle, est_iptw, est_gcomp, file=here("results/sampled_data_estimates.R"))
 
 #plot of results
 

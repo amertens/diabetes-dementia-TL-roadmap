@@ -132,6 +132,8 @@ Lnodes <- c("La_0","L0c","La_1","La_2")
 lib = c("SL.glm")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
+sim_res_gcomp <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
+sim_res_iptw <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
 for(i in 1:N_sim){
   dat <- sim(D,n=ndata[i], LTCF="Y", verbose=F, rndseed=i) 

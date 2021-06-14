@@ -79,7 +79,7 @@ trueRD
 
 
 # set up simulation parameters
-N_sim<-20 #100 datasets to estimate on
+N_sim<-100 #100 datasets to estimate on
 
 #Get a list of different dataset sizes
 set.seed(12345)
@@ -129,7 +129,7 @@ Lnodes <- c("La_0","L0c","La_1","La_2")
 
 
 
-lib = c("SL.glm")
+lib = c("SL.glm","SL.glmnet")
 abar <- list(a=rep(1,(length(Anodes))), b=rep(0,(length(Anodes))))
 
 sim_res_ltmle <- data.frame(est=rep(NA, N_sim), var=rep(NA, N_sim))
@@ -214,25 +214,25 @@ sim_res %>%
   knitr::kable()
 
 
-sim_res <- sim_res %>%
+plot_res <- sim_res %>%
   group_by(model) %>% # grouping 
   do(calc_absolute(., estimates = est, true_param = trueRD)) %>%
   gather(bias:rmse_mcse,  key = metric, value = est) %>%
   filter(metric!="rmse" & metric!="rmse_mcse")
-sim_res_est <- sim_res %>% filter(!grepl("_mcse",metric))
-sim_res_var <- sim_res %>% filter(grepl("_mcse",metric)) %>% mutate(metric=gsub("_mcse","",metric)) %>% rename(se=est)
-sim_res <- merge(sim_res_est, sim_res_var, by=c("model","metric","K")) %>%
+plot_res_est <- plot_res %>% filter(!grepl("_mcse",metric))
+plot_res_var <- plot_res %>% filter(grepl("_mcse",metric)) %>% mutate(metric=gsub("_mcse","",metric)) %>% rename(se=est)
+plot_res <- merge(plot_res_est, plot_res_var, by=c("model","metric","K")) %>%
   mutate(est.lb=est-1.96*se, est.ub=est+1.96*se)
-sim_res
+plot_res
 
 #Plot performance metrics
-ggplot(sim_res, aes(x=model, y=est)) + 
+ggplot(plot_res, aes(x=model, y=est)) + 
   geom_point() + geom_linerange(aes(ymin=est.lb, ymax=est.ub)) +
   geom_hline(yintercept=0) +
   facet_wrap(~metric, scales="free") + coord_flip() +
   theme_bw()
 
-
+save(sim_res, plot_res, file=here("results/perf_metrics1.Rdata"))
 
 #to do:
 #make sure adjusted glm is better than glm

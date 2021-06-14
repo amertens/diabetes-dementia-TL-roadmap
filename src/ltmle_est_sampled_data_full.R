@@ -146,7 +146,7 @@ system.time((est_iptw <- get_estimates(gcomp_output=F,est_type="iptw")))
 
 system.time((est_gcomp <- get_estimates(gcomp_output=T,est_type="gcomp")))
 
-save(est_tmle, est_iptw, est_gcomp, file=here("results/sampled_data_estimates.R"))
+save(est_tmle, est_iptw, est_gcomp, file=here("results/sampled_data_estimates.Rdata"))
 
 #plot of results
 
@@ -158,8 +158,8 @@ save(est_tmle, est_iptw, est_gcomp, file=here("results/sampled_data_estimates.R"
 #   xlab('')+ ylab("Average Treatment Effect (95% CI)")+coord_flip()+
 #   geom_errorbar(aes(ymin=lowerCI, ymax=upperCI,col=type),width=0.5,cex=1)+
 #   facet_wrap(~Parameter,strip.position="left",nrow=9,scales = "free_y") +
-#   geom_text(label=allest$label,nudge_x = 0.25, 
-#              check_overlap = T) 
+#   geom_text(label=allest$label,nudge_x = 0.25,
+#              check_overlap = T)
 # 
 # ggsave("./forestplot.png",  width = 7.5,
 #        height = 4.26,)

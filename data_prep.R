@@ -6,6 +6,7 @@ library(LtAtStructuR)
 library(data.table)
 library(lubridate)
 library(heaven)
+lsf.str("package:heaven")
 #library(future) # optional (for parallel processing)
 #plan(multiprocess) # optional (for parallel processing)
 

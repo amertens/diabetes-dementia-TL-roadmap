@@ -17,7 +17,7 @@ N <- 1000
 pop <- simPop(N)
 lpr <- simAdmissionData(N)
 #import atc codes for diabetes meds
-diabmeds <- rio::import("./diab_med_atcs.csv")
+diabmeds <- rio::import("./cohort_creation/data/reference/diab_med_atcs.csv")
 diabmeds$ATC <- stringr::str_trim(diabmeds$ATC)
 atcs <- rep(list(c(200, 30)), length = nrow(diabmeds))
 names(atcs) <- c(diabmeds$ATC)
@@ -70,14 +70,15 @@ metformin_usage <-
 metformin_users <-
   metformin_usage[between(eksd, index_dt, index_dt + 180),
                   .SD[which.min(eksd)], by = pnr]
-#need to add in some sanity checks
+#check that difference is less than 180
+if(max(abs(metformin_users$eksd-metformin_users$index_dt)>180))stop()
 #question: what about metformin, then something else (sulfoneryas?), then glp
 
-finaldata <- metformin_users[, .(pnr,index_dt,index_atc)]
-head(finaldata)
+base_cohort <- metformin_users[, .(pnr,index_dt,index_atc)]
+head(base_cohort)
 
 #save base cohort dataset
-objects <- c("finaldata")
+objects <- c("base_cohort")
 
 save(list = objects, file = "./cohort_creation/data/output/base_cohort.Rdata")
 

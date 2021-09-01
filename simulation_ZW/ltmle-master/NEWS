@@ -1,0 +1,176 @@
+ltmle 1.2-0
+===========
+* Added initial draft of vignette
+* Fixed some tests to address change to stringsAsFactors
+
+ltmle 1.1-0
+===========
+* Added SL.cvControl - optional list to be passed as cvControl to SuperLearner
+* confidence intervals and pvalues now use the t distribution if there are fewer than 100 observations (or fewer than 100 unique identifiers in id)
+* data can now be any class that inherits from data.frame
+* Bug fix: in previous versions, time estimate was sometimes unavailable if data contained factors
+* Added Suggests: tmle to DESCRIPTION - fixes a warning that caused ltmle to be temporarily removed from CRAN
+
+ltmle 1.0-1
+===========
+* Bug fix: starting in 0.9-9, in ltmleMSM, if a regime has zero weight for all observations (either because msm.weights specifies zero weight or because msm.weights = "empirical" and the empirical weight is zero), final results can be incorrect or ltmle may exit with the error "NA in Estimate". The bug does not occur, however, if there are no regimes with positive weight after the regime(s) with zero weight (this is the case when msm.weights = "empirical" and zero weight is given to duplicate regimes).
+
+ltmle 1.0-0
+===========
+* Added CITATION file for newly published Journal of Statistical Software reference
+
+ltmle 0.9-10
+===========
+* Speed and memory handling improved for large number of time periods
+
+* For ltmle with abar = list(...) and continuous Y outcomes: treatment, control and ATE are now calculated at the original scale (in previous versions they were printed on a transformed scale). This only affects summary.ltmleEffectMeasures.
+
+* If attr(SL.library, "return.fit") == TRUE, then fit$g and fit$Q will return full SuperLearner or speedglm objects. If not, only a summary matrix will be returned to save memory. In previous versions this was used only for SuperLearner; it is now used for both glm and SuperLearner.
+
+* The default for SL.library has been changed from NULL to "glm", but the meaning is the same (run glm instead of SuperLearner). NULL is still accepted (although it is not possible to set attr on NULL - see the change above).
+
+ltmle 0.9-9-3
+===========
+* Robust variance estimate (variance.method = "tmle" or "iptw") is now available with numeric gform
+
+* Ynodes are now permitted before the first A/C node
+
+* Bug fix: in 0.9-9, if all (uncensored, non-deterministic) Qstar.kplus1 values were the same at some Q regression, final results could be wrong
+
+* Bug fix: in 0.9-9, if all values of an Lnode were 0 and a deterministic.Q.function depended on the value of this Lnode, final results could be wrong
+
+ltmle 0.9-9
+===========
+
+MAJOR CHANGES
+
+* Package speed has been significantly increased and memory usage has been decreased.
+
+* IC.variance.only has been removed and replaced with variance.method. IC.variance.only=TRUE is equivalent to variance.method = "ic", IC.variance.only=FALSE is equivalent to variance.method="tmle". variance.method="iptw" is also available. See ?ltmle.
+
+* id (household or subject ID) has been added 
+
+* if SL.library is not NULL then gform and Qform will be used to create a design matrix before calling SuperLearner (in previous versions the functional form of Qform/gform was not used)
+
+MINOR CHANGES
+
+* the memorize parameter has been removed
+
+* fit$g and fit$Q only return a summary matrix if SuperLearner is used (to reduce memory usage). You can still get the full SuperLearner return object by using attr(SL.library, "return.fit") <- TRUE.
+
+* cum.g.used has been added to the ltmle/ltmleMSM return object
+
+ltmle 0.9-8
+===========
+* Updated references in ltmle-package.rd
+
+ltmle 0.9-7
+===========
+
+* Passing IC.variance.only=FALSE no longer gives an error if the robust variance estimate is not available (due to non-binary outcomes, stratify=TRUE, numeric gform, gcomp=TRUE, or deterministic.Q.function). Instead the package will throw a warning if it detects possible positivity violations (greater than 1% of values in g are truncated by gbounds) or rare events (at least one binary Y node has mean less than 0.03). A warning will also be thrown if IC.variance.only=TRUE and it detects possible positivity violations or rare events.
+
+* Fixed a bug: if IC.variance.only=FALSE and there is a censoring node before the first Anode an error may occur
+
+* Fixed a bug: if IC.variance.only=FALSE and abar/regimes contains an NA after death or censoring an error may occur
+
+* Converted to roxygen2 comments
+
+ltmle 0.9-6
+===========
+
+* Fixed a bug in ltmle and ltmleMSM - if SuperLearner is used with longitudinal data there can be an error: "obsWeights vector must have the same dimension as Y"
+
+* Fixed a bug in ltmle where confidence intervals were truncated at [0, 1] for non-binary outcomes
+
+* Fixed a bug in ltmle where the final Ynode is max(Ynodes) - this is wrong if Ynodes are passed as strings (takes alphabetically last)
+
+ltmle 0.9-5
+===========
+
+MAJOR CHANGES
+
+* Variance estimation in the presence of positivity violations and/or rare events has been significantly improved. However, the new variance estimation procedure takes significantly more time to run and is not yet compatible with some options (deterministic.Q.function, non-binary outcomes, gcomp=TRUE, stratify=TRUE, numeric gform). To obtain the influence curve based variance estimates used in prior versions, use IC.variance.only=TRUE.
+
+* Observations weights (sampling weights) are now available.
+
+* Baseline covariates can now be part of working.msm. 
+
+* A change to the implementation of the TMLE updating step reduces the variance of the estimator.
+
+* The weight.msm (TRUE or FALSE) parameter has been removed and replaced by msm.weights, which provides more flexibility in specifying MSM weights. 
+
+* The stratified IPTW for MSMs has been replaced by the standard IPTW for MSMs.
+
+* The usage for obtaining additive treatment effects, relative risk, and odds ratio has changed. 
+
+MINOR CHANGES
+
+* The pooledMSM parameter has been removed. The pooedMSM=TRUE version is always used.
+
+* The mhte.iptw parameter has been removed. The mhte.iptw=TRUE version is always used. This may give different answers to previous versions if you were using the default setting of mhte.iptw=FALSE.
+
+* The naive estimator in ltmle has been removed. One way this can still be obtained is by passing numeric gform such that prob(follow rule)=1 and using the "iptw" estimate.
+
+* The cumulative g without bounding is now returned (cum.g.unbounded) along with the bounded version (cum.g).
+
+* Improved estimate of time to completion.
+
+* Confidence intervals truncated at [0, 1] for treatment specific mean, [-1, 1] for additive treatment effect.
+
+* A bug has been fixed in the output for relative risk and odds ratio: the output that was incorrectly labelled "Estimated Std Err" now reads "Est Std Err log(OR)" or "Est Std Err log(RR)". 
+
+ltmle 0.9.3-1
+===========
+* Changed DESCRIPTION version dependency to R >= 3.0.0 because of testthat update.
+
+
+ltmle 0.9.3
+===========
+
+* A bug has been fixed where if your A values were not set to NA after death, IPTW point treatment estimates were incorrect and if weight.msm=TRUE, the weights were calculated incorrectly in ltmleMSM.
+
+* A bug has been fixed where if you were using glm and had a censoring node at which all observations were "uncensored" (as a factor), results could be off by a lot.
+
+* A bug has been fixed where if you were using SuperLearner and had censoring nodes you may have seen an error (even though your data was specified correctly):
+Error in ConvertCensoringNodesToBinary(data, nodes$C) : 
+  in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored' 
+
+* The 'regimens' input parameter in ltmleMSM has been changed to 'regimes' to better match existing literature.
+
+
+ltmle 0.9.1
+===========
+
+MAJOR CHANGES
+
+* A bug has been fixed in the use of deterministic maps. This has required removing the deterministic.acnode.map and deterministic.Q.map parameters and replacing them with deterministic.g.function and deterministic.Q.function. The new arguments are functions rather than lists. Please recalculate any results from version 0.9 that used deterministic maps! Differences in most cases should be minor, but could be significant in some cases. My apologies for the error and for the trouble updating your code. Thanks to Linh Tran for finding the bug.
+
+* survivalOutcome parameter has been added and is required when there are multiple binary Y nodes
+
+* scaling for continuous Y values added
+
+MINOR CHANGES
+
+* fits for g and Q regressions are returned
+
+* added BinaryToCensoring helper function
+
+* default SuperLearner library has changed
+
+* messages are used instead of cat and print
+
+* default formulas are shown if gform or Qform is NULL
+
+* dynamic regimes can be specified using a rule function instead of abar
+
+* formulas are returned
+
+* some improved warning messages and error checking
+
+* minor bug fixes
+
+
+ltmle 0.9
+===========
+
+ * initial release to CRAN

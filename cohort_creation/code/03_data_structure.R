@@ -94,6 +94,7 @@ set.seed(123)
 # lmdb <- data.table(simPrescriptionData(N, max.prescriptions = 5, 
 #                                        packages = atcs, startDate = "2012-01-01"))
 lmdb <- data.table(simPrescriptionData_atc(N, startDate = "2012-01-01"))
+max.date <- as.numeric(lmdb$eksd) %>% max  # last available monitored date; maybe the end date
 
 set.seed(123)
 pop <- simPop(N)
@@ -107,6 +108,7 @@ lpr <- simAdmissionData(N, startDate = "2012-01-01",
                                       dementiacodes[dementiacodes$codetype == "icd10", "code"]
                                       )  # make sure there are dementia records
                         )
+lpr <- lpr[uddto <= max.date, ]  # remove records after administrative end (just for simulated data)
 # make sure the dates are ordered before atc types
 setkey(lmdb, pnr, eksd, atc)
 
@@ -131,10 +133,14 @@ dt_tmle[lmdb[pnr %in% selected_IDs & atc %in% dementiacodes[dementiacodes$codety
         on = "pnr", first_date_dementia := i.date]  # search for the dates of first dementia drug usage
 dt_tmle[lpr[pnr %in% selected_IDs & diag %in% dementiacodes[dementiacodes$codetype == "icd10", "code"], .(date = inddto %>% first), pnr], 
         on = "pnr", first_date_dementia_ad := i.date]
-dt_tmle[, first_date_dementia:=ifelse(!is.na(first_date_dementia_ad) & first_date_dementia_ad < first_date_dementia, first_date_dementia_ad, first_date_dementia) ]
+dt_tmle[, first_date_dementia:=ifelse(!is.na(first_date_dementia_ad) & !is.na(first_date_dementia) & first_date_dementia_ad < first_date_dementia, 
+                                      first_date_dementia_ad, first_date_dementia) ]  # fill in ad if earlier
+dt_tmle[, first_date_dementia:=ifelse(!is.na(first_date_dementia_ad) & is.na(first_date_dementia), 
+                                      first_date_dementia_ad, first_date_dementia)]  # fill in ad if no prescription available
 dt_tmle[, first_date_dementia:=as.Date(first_date_dementia, "1970-01-01")]
 dt_tmle[, first_date_dementia_ad := NULL]
-max.date <- as.numeric(lmdb$eksd) %>% max  # last available monitored date; maybe the end date
+
+
 dt_tmle[, end_date := ifelse(is.na(first_date_dementia), max.date, first_date_dementia)]
 dt_tmle[, end_date:=as.Date(end_date, "1970-01-01")]
 lmdb[dt_tmle, end_date := i.end_date, on = "pnr"]  # record end dates in prescription DT for convenience
@@ -230,6 +236,7 @@ dt_tmle %>% head(10)
 
 # for target population, collect hypertension prescription dates
 # Lt is the status at the end of the (t-1)-th interval; for example, hypertension status can be >=2 types of hypertension drugs so far
+dt_tmle[, ':=' (paste0("L_", 1:11), 0)]
 dt_tmle[lmdb[pnr %in% selected_IDs & atc %in% unlist(hypertension_list), 
              (as.numeric(first(start_date)) + (365.25/2) * (0:10)) %>% sapply(function(u) length(unique(atc[as.numeric(eksd) <= u])) >= 2 & u <= as.numeric(first(end_date))), 
              by = "pnr"][, V1 %>% as.vector %>% as.numeric %>% as.list, by = "pnr"], 

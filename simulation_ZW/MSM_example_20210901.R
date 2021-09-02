@@ -19,8 +19,8 @@ library(pryr)
 logit <- function(x) log(x/(1-x))
 expit <- function(x) 1/(1+exp(-x))
 coef_intercept <- 3.5
-coef_a <- -0.3
-coef_b <- 0.1
+coef_a <- -0.4
+coef_b <- 0.2
 expit(coef_intercept + coef_a*(10) + coef_b*(0:10)) %>% plot  # endpoint survival prob by accumulated exposure
 expit(coef_intercept + coef_a*(1:10) + coef_b*(0)) %>% plot(type = "l")  # survival curve with 0 exposure
 expit(coef_intercept + coef_a*(1:10) + coef_b*(1:10)) %>% lines(col = "red")  # survival curve with full exposure
@@ -30,9 +30,26 @@ expit(coef_intercept + coef_a*(1:10) + coef_b*(1:10)) %>% lines(col = "red")  # 
 ###
 
 dt_tmle <- readRDS("./simulation_ZW/dt_tmle_202108.rds")
+
 set.seed(200)
+dt_tmle <- dt_tmle[sample(nrow(dt_tmle), 100000, T), ]
+for (i in 1:10) {
+  dt_tmle[, paste0("A1_", i) := sample(0:1, nrow(dt_tmle), replace = T)]
+}
 # add more "treated" subjects to make positivity issue less severe for now
-dt_tmle <- dt_tmle[c(sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) > 5), 100000, T), sample(nrow(dt_tmle), 100000, T)), ]
+dt_tmle <- dt_tmle[c(sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 10), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 9), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 8), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 7), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 6), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 5), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 4), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 3), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 2), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 1), 10000, T), 
+                     sample(which((dt_tmle[, paste0("A1_", 1:10)] %>% rowSums) == 0), 10000, T), 
+                     sample(nrow(dt_tmle), 10000, T)), ]
+
 
 K <- 10 
 node_names <- c("age", "sex", "L_0", 
@@ -126,7 +143,7 @@ administrativeCensoring <- function(data, current.node, nodes, last_day = max.da
 # code summary covaraites in MSM models; now include accumulated exposure and time
 n <- nrow(dt_use)
 time.points <- 10
-n_pool <- 7
+n_pool <- 10
 regime.matrix <- as.matrix(expand.grid(rep(list(0:1), time.points)))
 dim(regime.matrix)
 num.regimes <- 2^time.points
@@ -137,10 +154,11 @@ test.treated <- array(dim = c(num.regimes, 1, 1))
 for (i in 1:num.regimes) {
   regimes[, , i] <- matrix(regime.matrix[i, ], byrow = TRUE, nrow = n, ncol = time.points)
   for (j in 1:n_pool) {
-    summary.measures[i, , j] <- c(sum(regime.matrix[i, j]), j)  # accumulated exposure, time
+    summary.measures[i, , j] <- c(sum(regime.matrix[i, 1:(time.points - n_pool + j)]), time.points - n_pool + j)  # accumulated exposure, time
   }
   # test.treated[i, 1, 1] <- !any(diff(which(regime.matrix[i, ] == 0)) == 1)
-  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 3)  # max interruption: this number -1
+  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) & 
+    sum(regime.matrix[i, ] == 0) <=2  # max length of one interruption: first number -1; max total interruption: second number
 }
 
 # colnames(summary.measures) <- "time.on.treatment"
@@ -150,7 +168,7 @@ test.treated[, 1, 1] %>% table
 summary.measures <- summary.measures[test.treated[, 1, 1], , ]
 # %>% array(dim = c(sum(test.treated[, 1, 1]), 1, 1))
 # colnames(summary.measures) <- "time.on.treatment"
-for (j in 1:time.points) {
+for (j in 1:n_pool) {
   colnames(summary.measures[, , j]) <- c("time.on.treatment", "time")
 }
 colnames(summary.measures) <- c("time.on.treatment", "time")
@@ -158,7 +176,11 @@ colnames(summary.measures) <- c("time.on.treatment", "time")
 {
   start_time <- Sys.time()
   ss <- mem_change(
-    test <- ltmleMSM(dt_use, Anodes = grep("^A1_", node_names), Lnodes = paste0("L_", 1:11), Ynodes = grep("^Y_", node_names), Cnodes = grep("^C_", node_names), survivalOutcome = T, 
+    test <- ltmleMSM(dt_use, Anodes = grep("^A1_", node_names), 
+                     Lnodes = paste0("L_", 1:11), 
+                     Ynodes = grep("^Y_", node_names), 
+                     Cnodes = grep("^C_", node_names), 
+                     survivalOutcome = T, 
                      # SL.library = c("SL.glm"),
                      # SL.library = c("SL.glm", c("SL.glm","screen.corP")),
                      regimes = regimes[, , test.treated[, 1, 1]], 
@@ -171,6 +193,7 @@ colnames(summary.measures) <- c("time.on.treatment", "time")
                      msm.weights = "empirical",  # h weights by obs data
                      # SL.cvControl = list(V = 8)  # control CV fold numbers; might be used in paralleled version
                      deterministic.g.function = administrativeCensoring,  # incorporate deterministic censoring based on index dates
+                     # gbounds = c(0.05, 0.95),
                      estimate.time = F  # do not run on a n=50 subsample for predicting computation time
                      
     )
@@ -196,15 +219,15 @@ np_truth <- function(t, ss) {
 
 png("./simulation_ZW/MSM_example.png", width = 12, height = 8, units = "in", res = 300)
 ll <- 10
-expit(test$beta[1] + test$beta[3] * (6:ll) + test$beta[2]*c((6:ll))) %>% plot(x = 6:ll, type = "l", ylim = c(0.05, 0.35), ylab = "Risk", xlab = "t")
-expit(test$beta[1] + test$beta[3] * (6:ll) + test$beta[2]*c((6:ll) - 1)) %>% lines(x = 6:ll, col = "blue")
-expit(test$beta[1] + test$beta[3] * (6:ll) + test$beta[2]*c((6:ll) - 2)) %>% lines(x = 6:ll, col = "red")
-# (1-expit(coef_intercept +coef_a*(6:ll) + coef_b*c((6:ll)))) %>% lines(x = 6:ll, col = "black", lty = 2)
-# (1-expit(coef_intercept +coef_a*(6:ll) + coef_b*c((6:ll)-1))) %>% lines(x = 6:ll, col = "blue", lty = 2)
-# (1-expit(coef_intercept +coef_a*(6:ll) + coef_b*c((6:ll)-2))) %>% lines(x = 6:ll, col = "red", lty = 2)
-(1-sapply(6:ll, function(u) np_truth(u, u) )) %>% lines(x = 6:ll, col = "black", lty = 2)
-(1-sapply(6:ll, function(u) np_truth(u, u-1) )) %>% lines(x = 6:ll, col = "blue", lty = 2)
-(1-sapply(6:ll, function(u) np_truth(u, u-2) )) %>% lines(x = 6:ll, col = "red", lty = 2)
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll))) %>% plot(x = 1:ll, type = "l", ylim = c(0.00, 0.3), ylab = "Risk", xlab = "t")
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll) - 1)) %>% lines(x = 1:ll, col = "blue")
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll) - 2)) %>% lines(x = 1:ll, col = "red")
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)))) %>% lines(x = 1:ll, col = "black", lty = 2)
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-1))) %>% lines(x = 1:ll, col = "blue", lty = 2)
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-2))) %>% lines(x = 1:ll, col = "red", lty = 2)
+# (1-sapply(1:ll, function(u) np_truth(u, u) )) %>% lines(x = 1:ll, col = "black", lty = 2)
+# (1-sapply(1:ll, function(u) np_truth(u, u-1) )) %>% lines(x = 1:ll, col = "blue", lty = 2)
+# (1-sapply(1:ll, function(u) np_truth(u, u-2) )) %>% lines(x = 1:ll, col = "red", lty = 2)
 
 legend(x = "topleft",          # Position
        legend = c("Estimate", "Target", "Missing 2", "Missing 1", "Full exposure"),  # Legend texts
@@ -213,3 +236,7 @@ legend(x = "topleft",          # Position
        )
 
 dev.off()
+
+
+# lapply(1:sum(test.treated), function(i) test$cum.g.unbounded[, , i] %>% range(na.rm = T))
+# test$cum.g.unbounded[, , 8] %>% hist

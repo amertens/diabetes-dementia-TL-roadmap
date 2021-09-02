@@ -19,8 +19,8 @@ library(pryr)
 logit <- function(x) log(x/(1-x))
 expit <- function(x) 1/(1+exp(-x))
 coef_intercept <- 3.5
-coef_a <- -0.4
-coef_b <- 0.2
+coef_a <- -0.3
+coef_b <- 0.15
 expit(coef_intercept + coef_a*(10) + coef_b*(0:10)) %>% plot  # endpoint survival prob by accumulated exposure
 expit(coef_intercept + coef_a*(1:10) + coef_b*(0)) %>% plot(type = "l")  # survival curve with 0 exposure
 expit(coef_intercept + coef_a*(1:10) + coef_b*(1:10)) %>% lines(col = "red")  # survival curve with full exposure
@@ -157,7 +157,7 @@ for (i in 1:num.regimes) {
     summary.measures[i, , j] <- c(sum(regime.matrix[i, 1:(time.points - n_pool + j)]), time.points - n_pool + j)  # accumulated exposure, time
   }
   # test.treated[i, 1, 1] <- !any(diff(which(regime.matrix[i, ] == 0)) == 1)
-  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) & 
+  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) &
     sum(regime.matrix[i, ] == 0) <=2  # max length of one interruption: first number -1; max total interruption: second number
 }
 
@@ -204,18 +204,18 @@ ss  # MEM change in MB
 test  # coef est
 difftime(end_time, start_time, units = "mins")  # time in min
 
-# function of checking np truth
-np_truth <- function(t, ss) {
-  vec_rowsums <- regime.matrix[as.vector(test.treated), 1:t] %>% rowSums
-  target_dt <- regime.matrix[as.vector(test.treated), 1:t] %>% as.data.table
-  target_dt <- target_dt[vec_rowsums == ss, 1:t] %>% unique
-  setnames(target_dt, paste0("A1_", 1:t))
-  to_match <- dt_use_backup %>% copy()
-  setkeyv(to_match, paste0("A1_", 1:t))
-  setkeyv(target_dt, paste0("A1_", 1:t))
-  temp_vec <- to_match[.(target_dt)][!is.na(age) & get(paste0("C_", t)) == 1, ][[paste0("Y_", t+1)]] %>% table(useNA = "always")
-  temp_vec["0"]/sum(temp_vec[1:2])
-}
+# # function of checking np truth
+# np_truth <- function(t, ss) {
+#   vec_rowsums <- regime.matrix[as.vector(test.treated), 1:t] %>% rowSums
+#   target_dt <- regime.matrix[as.vector(test.treated), 1:t] %>% as.data.table
+#   target_dt <- target_dt[vec_rowsums == ss, 1:t] %>% unique
+#   setnames(target_dt, paste0("A1_", 1:t))
+#   to_match <- dt_use_backup %>% copy()
+#   setkeyv(to_match, paste0("A1_", 1:t))
+#   setkeyv(target_dt, paste0("A1_", 1:t))
+#   temp_vec <- to_match[.(target_dt)][!is.na(age) & get(paste0("C_", t)) == 1, ][[paste0("Y_", t+1)]] %>% table(useNA = "always")
+#   temp_vec["0"]/sum(temp_vec[1:2])
+# }
 
 png("./simulation_ZW/MSM_example.png", width = 12, height = 8, units = "in", res = 300)
 ll <- 10

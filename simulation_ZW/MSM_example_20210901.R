@@ -107,14 +107,15 @@ for (i in 2:11) {
 
 # code censoring into a regenerated index date
 # first time bin t where censoring status changes
-censored_t <- dt_use[, paste0("C_", 1:10)] %>% apply(1, function(eachRow) first(which(eachRow == 0))) %>% lapply(function(x) ifelse(length(x) == 0, 0, x)) %>% unlist
+censored_t <- dt_use[, paste0("C_", 1:10)] %>% apply(1, function(eachRow) first(which(eachRow == 0))) %>% lapply(function(x) ifelse(length(x) == 0, 0, 
+                                                                                                                                    ifelse(is.na(x), 0, x))) %>% unlist
 censored_t[censored_t==0] <- 11
 fake_index_dates <- max.date - (censored_t - 1) * (365.25/2) - sample(10:170, nrow(dt_use), T)
 
 # check fake index date inferred Ct process matches observed censoring
 temp <- floor((max.date - fake_index_dates) / (365.25/2)) + 1 # decide max.date is in which interval, then it means censoring status changes within this interval
 table(temp)
-censored_t %>% table
+censored_t %>% table  # most of the subjects are administrative censoring (censored_t = K+1)
 
 dt_use[, first_date_2nd_line := fake_index_dates]
 
@@ -157,8 +158,13 @@ for (i in 1:num.regimes) {
     summary.measures[i, , j] <- c(sum(regime.matrix[i, 1:(time.points - n_pool + j)]), time.points - n_pool + j)  # accumulated exposure, time
   }
   # test.treated[i, 1, 1] <- !any(diff(which(regime.matrix[i, ] == 0)) == 1)
-  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) &
-    sum(regime.matrix[i, ] == 0) <=2  # max length of one interruption: first number -1; max total interruption: second number
+  
+  
+  ###
+  # specify maximum lengths of each interruption and total interruption here
+  ###
+  test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) &  # max length of one interruption: this first number -1; for example, 2-1 = 1 max each interruption
+    sum(regime.matrix[i, ] == 0) <=2  # max total interruption: this second number; for example, max total interruption 2
 }
 
 # colnames(summary.measures) <- "time.on.treatment"
@@ -173,6 +179,7 @@ for (j in 1:n_pool) {
 }
 colnames(summary.measures) <- c("time.on.treatment", "time")
 
+options(mc.cores = 8)  # parallel across V folds in each mcSuperLearner call in ltmle::Estiamte function
 {
   start_time <- Sys.time()
   ss <- mem_change(
@@ -181,17 +188,15 @@ colnames(summary.measures) <- c("time.on.treatment", "time")
                      Ynodes = grep("^Y_", node_names), 
                      Cnodes = grep("^C_", node_names), 
                      survivalOutcome = T, 
-                     # SL.library = c("SL.glm"),
-                     # SL.library = c("SL.glm", c("SL.glm","screen.corP")),
-                     regimes = regimes[, , test.treated[, 1, 1]], 
-                     summary.measures = summary.measures, 
+                     SL.library = c("SL.glm"),  # use the simplest SL
+                     regimes = regimes[, , test.treated[, 1, 1]],  # only the candidate regimes
+                     summary.measures = summary.measures,   # corresponding summary measures for the candidate regimes
                      working.msm = "Y~time.on.treatment + time",
-                     # working.msm = "Y~1",
                      variance.method = "ic",  # direct EIC plug in; might be underestimated with positivity and rare outcomes
                      # final.Ynodes = "Y_11",
                      final.Ynodes = paste0("Y_", seq(to = K+1, length.out = n_pool, by = 1)),   # to pool across these nodes
                      msm.weights = "empirical",  # h weights by obs data
-                     # SL.cvControl = list(V = 8)  # control CV fold numbers; might be used in paralleled version
+                     SL.cvControl = list(V = 8),  # control CV fold numbers; might be used in paralleled version
                      deterministic.g.function = administrativeCensoring,  # incorporate deterministic censoring based on index dates
                      # gbounds = c(0.05, 0.95),
                      estimate.time = F  # do not run on a n=50 subsample for predicting computation time
@@ -204,18 +209,6 @@ ss  # MEM change in MB
 test  # coef est
 difftime(end_time, start_time, units = "mins")  # time in min
 
-# # function of checking np truth
-# np_truth <- function(t, ss) {
-#   vec_rowsums <- regime.matrix[as.vector(test.treated), 1:t] %>% rowSums
-#   target_dt <- regime.matrix[as.vector(test.treated), 1:t] %>% as.data.table
-#   target_dt <- target_dt[vec_rowsums == ss, 1:t] %>% unique
-#   setnames(target_dt, paste0("A1_", 1:t))
-#   to_match <- dt_use_backup %>% copy()
-#   setkeyv(to_match, paste0("A1_", 1:t))
-#   setkeyv(target_dt, paste0("A1_", 1:t))
-#   temp_vec <- to_match[.(target_dt)][!is.na(age) & get(paste0("C_", t)) == 1, ][[paste0("Y_", t+1)]] %>% table(useNA = "always")
-#   temp_vec["0"]/sum(temp_vec[1:2])
-# }
 
 png("./simulation_ZW/MSM_example.png", width = 12, height = 8, units = "in", res = 300)
 ll <- 10
@@ -225,9 +218,6 @@ expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll) - 2)) %>% lin
 (1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)))) %>% lines(x = 1:ll, col = "black", lty = 2)
 (1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-1))) %>% lines(x = 1:ll, col = "blue", lty = 2)
 (1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-2))) %>% lines(x = 1:ll, col = "red", lty = 2)
-# (1-sapply(1:ll, function(u) np_truth(u, u) )) %>% lines(x = 1:ll, col = "black", lty = 2)
-# (1-sapply(1:ll, function(u) np_truth(u, u-1) )) %>% lines(x = 1:ll, col = "blue", lty = 2)
-# (1-sapply(1:ll, function(u) np_truth(u, u-2) )) %>% lines(x = 1:ll, col = "red", lty = 2)
 
 legend(x = "topleft",          # Position
        legend = c("Estimate", "Target", "Missing 2", "Missing 1", "Full exposure"),  # Legend texts
@@ -237,6 +227,3 @@ legend(x = "topleft",          # Position
 
 dev.off()
 
-
-# lapply(1:sum(test.treated), function(i) test$cum.g.unbounded[, , i] %>% range(na.rm = T))
-# test$cum.g.unbounded[, , 8] %>% hist

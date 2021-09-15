@@ -6,8 +6,7 @@
 #SBATCH --account=co_biostat
 #
 # Partition:
-#SBATCH --partition=savio3
-#SBATCH --qos=biostat_savio3_normal
+#SBATCH --partition=savio2_htc
 #
 # Specify one task:
 #SBATCH --ntasks=1
@@ -20,8 +19,6 @@
 # Wall clock limit:
 #SBATCH --time=72:00:00
 #SBATCH --error=test_job_%j.err
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=wangzeyi@berkeley.edu
 #
 ## Command(s) to run (example):
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK

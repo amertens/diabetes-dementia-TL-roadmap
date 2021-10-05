@@ -1660,6 +1660,7 @@ EstimateG <- function(inputs) {
       } else {
         subs <- uncensored & !deterministic.origdata & !deterministic.g.origdata
       }
+      print(i)  # ZW: temp
       g.est <- Estimate(inputs, form=form, Qstar.kplus1=NULL, subs=subs, family=quasibinomial(), type="response", nodes=nodes, called.from.estimate.g=TRUE, calc.meanL=inputs$variance.method != "ic", cur.node=cur.node, regimes.meanL=regimes.meanL, regimes.with.positive.weight=1:num.regimes) #assume all regimes have positive weight for some final.Ynode 
       prob.A.is.1[, i, ] <- g.est$predicted.values
       fit[[i]] <- g.est$fit
@@ -1783,7 +1784,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         cluster = parallel::makeCluster(getOption("snow.cores", 2L))
         foo <- parallel::clusterEvalQ(cluster, library(SuperLearner))
         foo2 <- parallel::clusterExport(cluster, SL.library[SL.library %in% ls(.GlobalEnv)])  # ZW: in case there are custom learners
-        
+print(family)
         try.result <- try({
           SuppressGivenWarnings(m <- SuperLearner::snowSuperLearner(cluster = cluster, Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })

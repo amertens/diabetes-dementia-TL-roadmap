@@ -15,7 +15,10 @@ library(speedglm)
 temp <- list.files(pkg_dir, full.names = T)
 for (i in temp) source(i)
 
+# devtools::install_local("./simulation_ZW/DK_trip_2021/hal9001.zip")  # ZW: need to install hal9001-dev for quasibinomial() family
 library(hal9001)
+
+
 library(pryr)
 # library(nnls)
 
@@ -31,7 +34,7 @@ coef_b <- 0.1
 dt_use_backup <- readRDS(data_path)
 
 set.seed(000)
-dt_use <- dt_use_backup[sample(nrow(dt_use_backup), 200, T), ]  # target sample size
+dt_use <- dt_use_backup[sample(nrow(dt_use_backup), 100, T), ]  # target sample size
 K <- 10
 
 # if(any(dt_use$age > 1)) {
@@ -45,32 +48,29 @@ for (i in 1:10) {
   dt_use[, ':='(paste0("C_", i), BinaryToCensoring(is.uncensored = paste0("C_", i) %>% get))]
 }
 
+
+
 SL.hal9001.flexible <- function(Y,
                        X,
                        newX = NULL,
-                       family = NULL,
+                       family = stats::binomial(),
                        obsWeights = rep(1, length(Y)),
                        id = NULL,
-                       max_degree = ifelse(ncol(X) >= 20, 2, 3),
+                       # max_degree = ifelse(ncol(X) >= 20, 2, 3),
+                       max_degree = ifelse(ncol(X) >= 5, 2, 3),
                        smoothness_orders = 1,
                        num_knots = ifelse(smoothness_orders >= 1, 25, 50),
                        reduce_basis = 1 / sqrt(length(Y)),
                        lambda = NULL,
                        ...) {
   
-  if (all(Y %in% c(0, 1, NA))) {
-    actual_family <- stats::binomial()
-  } else {
-    actual_family <- stats::gaussian()
-  }
-  warning(actual_family)
   # create matrix version of X and newX for use with hal9001::fit_hal
   if (!is.matrix(X)) X <- as.matrix(X)
   if (!is.null(newX) & !is.matrix(newX)) newX <- as.matrix(newX)
   
   # fit hal
-  hal_fit <- fit_hal(
-    X = X, Y = Y, family = actual_family,
+  hal_fit <- hal9001::fit_hal(  # ZW: use side loaded dev version, with family as obj not character
+    X = X, Y = Y, family = family,
     fit_control = list(weights = obsWeights), id = id, max_degree = max_degree,
     smoothness_orders = smoothness_orders, num_knots = num_knots, reduce_basis
     = reduce_basis, lambda = lambda
@@ -132,8 +132,10 @@ options(snow.cores = ncores)
                   abar = abar, 
                   deterministic.g.function = SI_function, 
                   SL.library = c(
-                    "SL.hal9001.flexible",
-                                 "SL.mean", "SL.glm"),
+                    "SL.hal9001.flexible"
+                    , "SL.mean"
+                    , "SL.glm"
+                    ),
                   variance.method = "ic",
                   SL.cvControl = list(V = ncores), 
                   estimate.time = F

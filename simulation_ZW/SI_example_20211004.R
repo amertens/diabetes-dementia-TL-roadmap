@@ -32,21 +32,23 @@ dt_use_backup <- readRDS(data_path)
 
 set.seed(000)
 dt_use <- dt_use_backup[sample(nrow(dt_use_backup), 200, T), ]  # target sample size
+K <- 10
 
 # if(any(dt_use$age > 1)) {
 #   dt_use[, age := age/100]  
 # }
 dt_use[, first_date_2nd_line := NULL]
+node_names <- names(dt_use)
 node_names <- node_names[!(node_names %in% c("first_date_2nd_line"))]
 
 for (i in 1:10) {
   dt_use[, ':='(paste0("C_", i), BinaryToCensoring(is.uncensored = paste0("C_", i) %>% get))]
 }
 
-SL.hal9001 <- function(Y,
+SL.hal9001.flexible <- function(Y,
                        X,
                        newX = NULL,
-                       family = stats::binomial(),
+                       family = NULL,
                        obsWeights = rep(1, length(Y)),
                        id = NULL,
                        max_degree = ifelse(ncol(X) >= 20, 2, 3),
@@ -56,13 +58,19 @@ SL.hal9001 <- function(Y,
                        lambda = NULL,
                        ...) {
   
+  if (all(Y %in% c(0, 1, NA))) {
+    actual_family <- stats::binomial()
+  } else {
+    actual_family <- stats::gaussian()
+  }
+  warning(actual_family)
   # create matrix version of X and newX for use with hal9001::fit_hal
   if (!is.matrix(X)) X <- as.matrix(X)
   if (!is.null(newX) & !is.matrix(newX)) newX <- as.matrix(newX)
   
   # fit hal
   hal_fit <- fit_hal(
-    X = X, Y = Y, family = family$family,
+    X = X, Y = Y, family = actual_family,
     fit_control = list(weights = obsWeights), id = id, max_degree = max_degree,
     smoothness_orders = smoothness_orders, num_knots = num_knots, reduce_basis
     = reduce_basis, lambda = lambda
@@ -82,7 +90,7 @@ SL.hal9001 <- function(Y,
   return(out)
 }
 
-environment(SL.hal9001) <- asNamespace("SuperLearner")  # 
+environment(SL.hal9001.flexible) <- asNamespace("SuperLearner")  # 
 
 # stochastic intervention
 SI_function <- function(data, current.node, nodes) {
@@ -124,7 +132,7 @@ options(snow.cores = ncores)
                   abar = abar, 
                   deterministic.g.function = SI_function, 
                   SL.library = c(
-                    "SL.hal9001",
+                    "SL.hal9001.flexible",
                                  "SL.mean", "SL.glm"),
                   variance.method = "ic",
                   SL.cvControl = list(V = ncores), 

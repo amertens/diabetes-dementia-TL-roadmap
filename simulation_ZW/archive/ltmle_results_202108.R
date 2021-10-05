@@ -20,7 +20,8 @@ K <- 10
 report_table <- list()
 
 for (s in 1:3) {
-  result_folder <- paste0("/home/leo42k/Documents/projects/brc_output/202106/tmle3/parallel_", identifier_vec[s], "/temp_output")
+  # result_folder <- paste0("/home/leo42k/Documents/projects/brc_output/202106/tmle3/parallel_", identifier_vec[s], "/temp_output")
+  result_folder <- paste0("/home/leo42k/Documents/projects/brc_output/ltmle/parallel_", identifier_vec[s], "/temp_output")
   all_results <- lapply(1:K, function(i) {
     if(file.exists(paste0(result_folder, "/", i, ".RDS"))) {
       paste0(result_folder, "/", i, ".RDS") %>% readRDS %>% return

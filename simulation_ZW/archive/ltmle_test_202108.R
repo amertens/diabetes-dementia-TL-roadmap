@@ -85,7 +85,7 @@ for (i in 2:11) {
 
 
 # first time bin t where censoring status changes
-censored_t <- dt_use[, paste0("C_", 1:10)] %>% apply(1, function(eachRow) first(which(eachRow == 0))) %>% lapply(function(x) ifelse(length(x) == 0, 0, x)) %>% unlist
+censored_t <- dt_use[, paste0("C_", 1:10)] %>% apply(1, function(eachRow) first(which(eachRow == 0))) %>% lapply(function(x) ifelse(length(x) == 0 | is.na(x), 0, x)) %>% unlist
 censored_t[censored_t==0] <- 11
 fake_index_dates <- max.date - (censored_t - 1) * (365.25/2) - sample(10:170, nrow(dt_use), T)
 

@@ -1660,7 +1660,7 @@ EstimateG <- function(inputs) {
       } else {
         subs <- uncensored & !deterministic.origdata & !deterministic.g.origdata
       }
-      print(i)  # ZW: temp
+      # print(i)  # ZW: temp
       g.est <- Estimate(inputs, form=form, Qstar.kplus1=NULL, subs=subs, family=quasibinomial(), type="response", nodes=nodes, called.from.estimate.g=TRUE, calc.meanL=inputs$variance.method != "ic", cur.node=cur.node, regimes.meanL=regimes.meanL, regimes.with.positive.weight=1:num.regimes) #assume all regimes have positive weight for some final.Ynode 
       prob.A.is.1[, i, ] <- g.est$predicted.values
       fit[[i]] <- g.est$fit

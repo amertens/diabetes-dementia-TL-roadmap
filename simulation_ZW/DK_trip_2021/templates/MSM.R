@@ -189,7 +189,7 @@ SL.library <- c("SL.hal9001.flexible", "SL.glmnet", "SL.glm", "SL.mean")
     # specify maximum lengths of each interruption and total interruption here
     ###
     test.treated[i, 1, 1] <- all(diff(c(0, which(regime.matrix[i, ] == 1), 11)) <= 2) &  # max length of one interruption: this first number -1; for example, 2-1 = 1 max each interruption
-      sum(regime.matrix[i, ] == 0) <=2  # max total interruption: this second number; for example, max total interruption 2
+      sum(regime.matrix[i, ] == 0) <=5  # max total interruption: this second number; for example, max total interruption 2
   }
   colnames(test.treated) <- "if.in.group"
   test.treated[, 1, 1] %>% table
@@ -225,15 +225,22 @@ test <- ltmleMSM(data, Anodes = grep("^A1_", node_names),
 
 ll <- 10
 expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll))) %>% plot(x = 1:ll, type = "l", ylim = c(0.00, 0.3), ylab = "Risk", xlab = "t")
-expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll) - 1)) %>% lines(x = 1:ll, col = "blue")
-expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*c((1:ll) - 2)) %>% lines(x = 1:ll, col = "red")
 (1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)))) %>% lines(x = 1:ll, col = "black", lty = 2)
-(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-1))) %>% lines(x = 1:ll, col = "blue", lty = 2)
-(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*c((1:ll)-2))) %>% lines(x = 1:ll, col = "red", lty = 2)
+temp_sec <- (1:ll) - 1
+temp_sec[temp_sec < 0] <- 0
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*temp_sec) %>% lines(x = 1:ll, col = "blue")
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*temp_sec)) %>% lines(x = 1:ll, col = "blue", lty = 2)
+temp_sec <- (1:ll) - 3
+temp_sec[temp_sec < 0] <- 0
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*temp_sec) %>% lines(x = 1:ll, col = "red")
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*temp_sec)) %>% lines(x = 1:ll, col = "red", lty = 2)
+temp_sec <- (1:ll) - 5
+temp_sec[temp_sec < 0] <- 0
+expit(test$beta[1] + test$beta[3] * (1:ll) + test$beta[2]*temp_sec) %>% lines(x = 1:ll, col = "green")
+(1-expit(coef_intercept +coef_a*(1:ll) + coef_b*temp_sec)) %>% lines(x = 1:ll, col = "green", lty = 2)
+
 legend(x = "topleft",          # Position
-       legend = c("Estimate", "Truth", "Skipped 2", "Skipped 1", "Full exposure"),  # Legend texts
+       legend = c("Estimate", "Truth", "Skipped 5", "Skipped 3", "Skipped 1", "Full exposure"),  # Legend texts
        lty = c(1, 2, 1, 1, 1),           # Line types
-       col = c("black", "black", "red", "blue", "black")
+       col = c("black", "black", "green", "red", "blue", "black")
 )
-
-

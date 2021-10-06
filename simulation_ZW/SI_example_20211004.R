@@ -15,12 +15,8 @@ library(speedglm)
 temp <- list.files(pkg_dir, full.names = T)
 for (i in temp) source(i)
 
-# devtools::install_local("./simulation_ZW/DK_trip_2021/hal9001.zip")  # ZW: need to install hal9001-dev for quasibinomial() family
 library(hal9001)
-
-
 library(pryr)
-# library(nnls)
 
 logit <- function(x) log(x/(1-x))
 expit <- function(x) 1/(1+exp(-x))
@@ -34,7 +30,7 @@ coef_b <- 0.1
 dt_use_backup <- readRDS(data_path)
 
 set.seed(000)
-dt_use <- dt_use_backup[sample(nrow(dt_use_backup), 100, T), ]  # target sample size
+dt_use <- dt_use_backup[sample(nrow(dt_use_backup), 1000, T), ]  # target sample size
 K <- 10
 
 # if(any(dt_use$age > 1)) {
@@ -59,10 +55,20 @@ SL.hal9001.flexible <- function(Y,
                        # max_degree = ifelse(ncol(X) >= 20, 2, 3),
                        max_degree = ifelse(ncol(X) >= 5, 2, 3),
                        smoothness_orders = 1,
-                       num_knots = ifelse(smoothness_orders >= 1, 25, 50),
+                       # num_knots = ifelse(smoothness_orders >= 1, 25, 50),
+                       num_knots = if (max_degree == 2) c(25, 10) else c(25, 10, 5),  # ZW: use decreased number of knots for interactions; recommended fast setting in ?fit_hal
                        reduce_basis = 1 / sqrt(length(Y)),
                        lambda = NULL,
+                       # bounds = c(0.005, 0.995),
                        ...) {
+  
+  if (inherits(family, "family")) {
+    
+  } else if (all(Y %in% c(0, 1, NA))) {
+    family <- stats::binomial()
+  } else {
+    family <- stats::gaussian()
+  }
   
   # create matrix version of X and newX for use with hal9001::fit_hal
   if (!is.matrix(X)) X <- as.matrix(X)
@@ -70,9 +76,11 @@ SL.hal9001.flexible <- function(Y,
   
   # fit hal
   hal_fit <- hal9001::fit_hal(  # ZW: use side loaded dev version, with family as obj not character
-    X = X, Y = Y, family = family,
+    X = X, Y = Y, family = family$family,
     fit_control = list(weights = obsWeights), id = id, max_degree = max_degree,
-    smoothness_orders = smoothness_orders, num_knots = num_knots, reduce_basis
+    smoothness_orders = smoothness_orders, 
+    num_knots = num_knots,  
+    reduce_basis
     = reduce_basis, lambda = lambda
   )
   
@@ -82,6 +90,8 @@ SL.hal9001.flexible <- function(Y,
   } else {
     pred <- stats::predict(hal_fit, new_data = X)
   }
+  # pred[pred < bounds[1]] <- bounds[1]
+  # pred[pred > bounds[2]] <- bounds[2]
   
   # build output object
   fit <- list(object = hal_fit)
@@ -125,20 +135,23 @@ for (k in 2:K) {
 abar <- as.matrix(abar)
 
 options(snow.cores = ncores)
+SL.library <- c(
+  "SL.hal9001.flexible"
+  , "SL.mean"
+  , "SL.glm"
+)
+setattr(SL.library, "return.fit", F)
+attr(SL.library, "return.fit") == TRUE
 {
   start_time <- Sys.time()
   ss <- mem_change(
     test <- ltmle(data, Anodes = grep("^A1_", node_names), Lnodes = paste0("L_", 1:(K+1)), Ynodes = grep("^Y_", node_names), Cnodes = grep("^C_", node_names), survivalOutcome = T, 
                   abar = abar, 
                   deterministic.g.function = SI_function, 
-                  SL.library = c(
-                    "SL.hal9001.flexible"
-                    , "SL.mean"
-                    , "SL.glm"
-                    ),
+                  SL.library = SL.library,
                   variance.method = "ic",
                   SL.cvControl = list(V = ncores), 
-                  estimate.time = F
+                  estimate.time = F,
     )
   )
   end_time <- Sys.time()

@@ -1784,9 +1784,11 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         cluster = parallel::makeCluster(getOption("snow.cores", 2L))
         foo <- parallel::clusterEvalQ(cluster, library(SuperLearner))
         foo2 <- parallel::clusterExport(cluster, SL.library[SL.library %in% ls(.GlobalEnv)])  # ZW: in case there are custom learners
-print(family)
+# print(family)  # ZW: temp
         try.result <- try({
-          SuppressGivenWarnings(m <- SuperLearner::snowSuperLearner(cluster = cluster, Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
+          # m <- snowSuperLearner(cluster = cluster, Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner))
+          SuppressGivenWarnings(m <- SuperLearner::snowSuperLearner(cluster = cluster, Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)),
+                                c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading"))
         })
         parallel::stopCluster(cluster)
 

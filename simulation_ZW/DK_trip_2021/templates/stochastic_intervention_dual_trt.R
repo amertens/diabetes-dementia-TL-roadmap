@@ -216,3 +216,4 @@ test_si <- ltmle(data,  # can use raw, or the processed one like this
                  SL.cvControl = list(V = ncores),  # V folds cross validation in super learners
                  estimate.time = F,  # skip runtime est
 )
+summary(test_si)

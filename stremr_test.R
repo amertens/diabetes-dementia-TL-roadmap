@@ -3,6 +3,7 @@
 rm(list=ls())
 
 #devtools::install_github('osofr/stremr')
+library(ltmle)
 library(stremr)
 
 
